@@ -1,4 +1,5 @@
-{
+
+export const metadata = {
   "name": "BBPPLembang Research Hub - Production",
   "description": "Platform riset cerdas BBPP Lembang yang terintegrasi dengan Repositori Pertanian, e-Publikasi, dan Google Scholar.",
   "version": "1.0.0-stable",
@@ -11,4 +12,6 @@
     "microphone",
     "camera"
   ]
-}
+};
+
+export default metadata;

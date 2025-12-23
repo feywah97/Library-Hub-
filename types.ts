@@ -1,6 +1,6 @@
 
 export type Role = 'user' | 'assistant';
-export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice';
+export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice' | 'python';
 
 export interface GroundingSource {
   title: string;
