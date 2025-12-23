@@ -1,5 +1,12 @@
 {
-  "name": "BBPPLembang Library Assistant",
-  "description": "Asisten virtual cerdas untuk Perpustakaan Balai Besar Pelatihan Pertanian (BBPP) Lembang, mendukung literatur agrikultur dan pelatihan pertanian.",
-  "requestFramePermissions": []
+  "name": "BBPPLembang Research Hub - Production",
+  "description": "Platform riset cerdas BBPP Lembang yang terintegrasi dengan Repositori Pertanian, e-Publikasi, dan Google Scholar.",
+  "version": "1.0.0-stable",
+  "deployment": {
+    "status": "active",
+    "environment": "production"
+  },
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

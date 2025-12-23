@@ -34,7 +34,7 @@ const AdvancedSearchModal: React.FC<Props> = ({ isOpen, onClose, onSearch }) => 
               <h3 className="text-xl font-black italic tracking-tighter">Pencarian Lanjutan</h3>
               <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest">Filter Koleksi Digital & Buku Teks</p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <button onClick={onClose} aria-label="Tutup Modul" className="p-2 hover:bg-white/10 rounded-full transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>

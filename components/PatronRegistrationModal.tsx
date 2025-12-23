@@ -44,6 +44,7 @@ const PatronRegistrationModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }
         <div className="bg-[#2D9C6B] p-8 text-white relative border-b-4 border-yellow-400">
           <button 
             onClick={onClose}
+            aria-label="Tutup Modul"
             className="absolute top-6 right-6 text-white/80 hover:text-white transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

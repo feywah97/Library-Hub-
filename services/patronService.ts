@@ -41,6 +41,18 @@ export const patronService = {
     return data ? JSON.parse(data) : [];
   },
 
+  deletePatron: (id: string) => {
+    const existing = patronService.getAllPatrons();
+    const filtered = existing.filter(p => p.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    
+    // Jika user yang login dihapus, force logout
+    const currentUser = patronService.getCurrentUser();
+    if (currentUser && currentUser.id === id) {
+      patronService.logout();
+    }
+  },
+
   getCurrentUser: (): Patron | null => {
     const data = localStorage.getItem(SESSION_KEY);
     return data ? JSON.parse(data) : null;
@@ -48,5 +60,6 @@ export const patronService = {
 
   logout: () => {
     localStorage.removeItem(SESSION_KEY);
+    window.location.reload(); // Refresh untuk update UI
   }
 };

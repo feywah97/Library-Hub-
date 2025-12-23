@@ -1,6 +1,6 @@
 
 export type Role = 'user' | 'assistant';
-export type SearchMode = 'regular' | 'expert' | 'journal';
+export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice';
 
 export interface GroundingSource {
   title: string;
@@ -23,26 +23,10 @@ export interface Message {
   groundingSources?: GroundingSource[];
 }
 
-export interface LibraryCategory {
-  name: string;
-  icon: string;
-  description: string;
-}
-
-export interface FAQEntry {
-  id: number;
-  kategori: string;
-  user_query: string;
-  chatbot_response: string;
-  penulis?: string;
-  tahun?: number;
-  topik?: string[];
-}
-
-export interface SearchFilters {
-  penulis: string;
-  tahun: string;
-  topik: string;
+export interface AISettings {
+  temperature: number;
+  thinkingBudget: number;
+  topP: number;
 }
 
 export interface Patron {
@@ -51,12 +35,29 @@ export interface Patron {
   email: string;
   noIdentitas: string;
   instansi: string;
-  kategori: 'Peneliti' | 'Mahasiswa' | 'Petani' | 'Umum';
+  kategori: 'Umum' | 'Mahasiswa' | 'Peneliti' | 'Petani';
   tanggalDaftar: string;
+}
+
+export interface SearchFilters {
+  penulis: string;
+  tahun: string;
+  topik: string;
 }
 
 export interface MonthlyLending {
   month: string;
   pertanian: number;
   hortikultura: number;
+}
+
+export interface FAQEntry {
+  question: string;
+  answer: string;
+}
+
+export interface DeploymentStatus {
+  isLive: boolean;
+  version: string;
+  uptime: string;
 }
