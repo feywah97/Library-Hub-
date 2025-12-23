@@ -23,6 +23,7 @@ const parseGeminiResponse = (response: any): ChatResponse => {
   const rawText = response.text || "";
   const sources: GroundingSource[] = [];
   
+  // 1. Extract from Metadata
   const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
   if (groundingChunks) {
     groundingChunks.forEach((chunk: any) => {
@@ -36,18 +37,38 @@ const parseGeminiResponse = (response: any): ChatResponse => {
   }
 
   const parsedData = extractJson(rawText);
+  const contentText = parsedData?.text || rawText;
+
+  // 2. Fallback: Manual Extraction for Priority Domains (Bug Fix)
+  // Ensure that if these domains are mentioned in text, they show up in grounding sources
+  const priorityDomains = ['repository.pertanian.go.id', 'epublikasi.pertanian.go.id', 'scholar.google.com'];
+  const urlRegex = /(https?:\/\/[^\s,)]+)/gi;
+  const foundUrls = contentText.match(urlRegex) || [];
+  
+  foundUrls.forEach((url: string) => {
+    const isPriority = priorityDomains.some(domain => url.includes(domain));
+    const alreadyExists = sources.some(s => s.uri === url);
+    
+    if (isPriority && !alreadyExists) {
+      sources.push({
+        title: url.includes('repository') ? "Koleksi Repositori Pertanian" : 
+               url.includes('epublikasi') ? "Publikasi Digital Pertanian" : "Google Scholar Reference",
+        uri: url
+      });
+    }
+  });
 
   if (parsedData) {
     return {
-      text: parsedData.text || "Maaf, hasil analisis tidak dapat diformat.",
+      text: contentText,
       suggestions: Array.isArray(parsedData.suggestions) ? parsedData.suggestions : [],
       groundingSources: sources.length > 0 ? sources : undefined
     };
   }
 
   return {
-    text: rawText.length > 50 ? rawText : "Maaf, sistem mengalami kendala teknis dalam mode ini.",
-    suggestions: ["Ulangi Pencarian", "Buka Google Scholar"],
+    text: contentText.length > 50 ? contentText : "Sistem sedang mengoptimalkan kueri. Mohon tunggu.",
+    suggestions: ["Cari di Repositori", "Tanya Pustakawan"],
     groundingSources: sources.length > 0 ? sources : undefined
   };
 };
@@ -64,10 +85,10 @@ export const chatWithGemini = async (
 
   if (mode === 'expert') {
     instruction = EXPERT_INSTRUCTION;
-    thinkingBudget = 32768;
+    thinkingBudget = 24000;
   } else if (mode === 'journal') {
     instruction = JOURNAL_INSTRUCTION;
-    thinkingBudget = 24576; // Deep research for journals
+    thinkingBudget = 20000;
   }
 
   try {
@@ -78,8 +99,8 @@ export const chatWithGemini = async (
         { role: "user", parts: [{ text: userMessage }] }
       ],
       config: {
-        systemInstruction: instruction + "\n\nCRITICAL: Respond ONLY in valid JSON format.",
-        temperature: mode === 'regular' ? 0.7 : 0.2,
+        systemInstruction: instruction + "\n\nAnda harus selalu memberikan jawaban dalam format JSON yang valid.",
+        temperature: mode === 'regular' ? 0.7 : 0.1,
         thinkingConfig: thinkingBudget > 0 ? { thinkingBudget } : undefined,
         responseMimeType: "application/json",
         tools: [{ googleSearch: {} }],
@@ -88,12 +109,12 @@ export const chatWithGemini = async (
           properties: {
             text: { 
               type: Type.STRING,
-              description: "Konten utama jawaban."
+              description: "Konten utama jawaban riset."
             },
             suggestions: { 
               type: Type.ARRAY, 
               items: { type: Type.STRING },
-              description: "Saran eksplorasi."
+              description: "Saran eksplorasi literatur."
             }
           },
           required: ["text", "suggestions"]
@@ -106,7 +127,7 @@ export const chatWithGemini = async (
   } catch (error) {
     console.error("Gemini Error:", error);
     return {
-      text: "Terjadi gangguan pada modul pencarian digital. Mohon coba lagi beberapa saat lagi.",
+      text: "Terjadi gangguan pada modul grounding data. Mohon ulangi kembali kueri Anda.",
       suggestions: ["Coba kueri lain"]
     };
   }

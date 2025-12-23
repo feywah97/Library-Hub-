@@ -13,15 +13,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
   const isJournal = message.mode === 'journal';
 
   const renderContent = (content: string) => {
-    // Regex Definitions
-    const pdfRegex = /(https?:\/\/[^\s]+?\.pdf)(?=[.,\s]|$)/gi;
-    const waRegex = /(https?:\/\/wa\.me\/6283827954312[^\s]*?)(?=[.,\s]|$)/gi;
-    const repoRegex = /(https?:\/\/repository\.pertanian\.go\.id[^\s]*?)(?=[.,\s]|$)/gi;
-    const epubRegex = /(https?:\/\/epublikasi\.pertanian\.go\.id[^\s]*?)(?=[.,\s]|$)/gi;
-    const scholarRegex = /(https?:\/\/scholar\.google\.com[^\s]*?)(?=[.,\s]|$)/gi;
-    const generalUrlRegex = /(https?:\/\/[^\s]+)(?=[.,\s]|$)/gi;
+    // Regex Definitions - More specific and robust
+    const pdfRegex = /(https?:\/\/[^\s,()]+\.pdf(?:[?#][^\s,()]*)?)/gi;
+    const waRegex = /(https?:\/\/wa\.me\/6283827954312(?:[?#][^\s,()]*)?)/gi;
+    const repoRegex = /(https?:\/\/repository\.pertanian\.go\.id(?:[?#][^\s,()]*)?)/gi;
+    const epubRegex = /(https?:\/\/epublikasi\.pertanian\.go\.id(?:[?#][^\s,()]*)?)/gi;
+    const scholarRegex = /(https?:\/\/scholar\.google\.com(?:[?#][^\s,()]*)?)/gi;
+    const generalUrlRegex = /(https?:\/\/[^\s,()]+)/gi;
 
-    const combinedRegex = /(https?:\/\/[^\s]+?\.pdf|https?:\/\/wa\.me\/6283827954312[^\s]*?|https?:\/\/repository\.pertanian\.go\.id[^\s]*?|https?:\/\/epublikasi\.pertanian\.go\.id[^\s]*?|https?:\/\/scholar\.google\.com[^\s]*?|https?:\/\/[^\s]+)/gi;
+    // Ordered by specificity
+    const combinedRegex = /(https?:\/\/[^\s,()]+\.pdf(?:[?#][^\s,()]*)?|https?:\/\/wa\.me\/6283827954312(?:[?#][^\s,()]*)?|https?:\/\/repository\.pertanian\.go\.id(?:[?#][^\s,()]*)?|https?:\/\/epublikasi\.pertanian\.go\.id(?:[?#][^\s,()]*)?|https?:\/\/scholar\.google\.com(?:[?#][^\s,()]*)?|https?:\/\/[^\s,()]+)/gi;
     
     const parts = content.split(combinedRegex);
     
@@ -41,10 +42,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
               </div>
               <div className="overflow-hidden">
                 <p className="text-[11px] font-black text-red-900 truncate uppercase tracking-tighter">{fileName}</p>
-                <p className="text-[9px] text-red-700 font-bold uppercase tracking-widest">Digital Asset Access</p>
+                <p className="text-[9px] text-red-700 font-bold uppercase tracking-widest italic">Akses Dokumen Digital</p>
               </div>
             </div>
-            <a href={part} target="_blank" rel="noopener noreferrer" className="ml-4 flex-shrink-0 bg-red-600 text-white p-2.5 rounded-xl hover:bg-red-700 transition-all border-b-2 border-red-900 active:translate-y-0.5">
+            <a href={part} target="_blank" rel="noopener noreferrer" className="ml-4 flex-shrink-0 bg-red-600 text-white p-2.5 rounded-xl hover:bg-red-700 transition-all border-b-2 border-red-900 active:translate-y-0.5 shadow-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -56,7 +57,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
       // 2. Scholar Cards
       if (part.match(scholarRegex)) {
         return (
-          <div key={index} className="my-3 p-4 bg-blue-50/50 border border-blue-200 rounded-2xl flex items-center justify-between group/scholar hover:bg-blue-100 hover:shadow-md transition-all animate-message">
+          <div key={index} className="my-3 p-4 bg-blue-50/50 border-2 border-blue-200 rounded-2xl flex items-center justify-between group/scholar hover:bg-blue-100 hover:shadow-md transition-all animate-message">
             <div className="flex items-center space-x-3 overflow-hidden">
               <div className="flex-shrink-0 bg-blue-700 p-2.5 rounded-xl text-white shadow-lg shadow-blue-200">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,37 +65,40 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
                 </svg>
               </div>
               <div className="overflow-hidden">
-                <p className="text-[11px] font-black text-blue-900 truncate uppercase tracking-tighter">Google Scholar Result</p>
-                <p className="text-[9px] text-blue-700 font-bold uppercase tracking-widest italic">Scientific Literature Access</p>
+                <p className="text-[11px] font-black text-blue-900 truncate uppercase tracking-tighter">Google Scholar</p>
+                <p className="text-[9px] text-blue-700 font-bold uppercase tracking-widest italic">Literatur Ilmiah</p>
               </div>
             </div>
-            <a href={part} target="_blank" rel="noopener noreferrer" className="ml-4 flex-shrink-0 bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-blue-800 transition-all border-b-2 border-blue-950">
+            <a href={part} target="_blank" rel="noopener noreferrer" className="ml-4 flex-shrink-0 bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black hover:bg-blue-800 transition-all border-b-2 border-blue-950 active:translate-y-0.5">
               BUKA JURNAL
             </a>
           </div>
         );
       }
 
-      // 3. Repository & E-Publikasi Cards
-      const isLibraryAsset = part.match(repoRegex) || part.match(epubRegex);
-      if (isLibraryAsset) {
-        const isEpub = part.match(epubRegex);
+      // 3. Official Library Cards (Priority Domains)
+      const isRepo = part.match(repoRegex);
+      const isEpub = part.match(epubRegex);
+      if (isRepo || isEpub) {
         return (
-          <div key={index} className={`my-3 p-4 border rounded-2xl flex items-center justify-between group/asset animate-message transition-all ${isEpub ? 'bg-amber-50/50 border-amber-100 hover:bg-amber-100' : 'bg-emerald-50/50 border-emerald-100 hover:bg-emerald-100'}`}>
+          <div key={index} className={`my-3 p-4 border-2 rounded-2xl flex items-center justify-between group/asset animate-message transition-all ${isEpub ? 'bg-amber-50/50 border-amber-300 hover:bg-amber-100' : 'bg-emerald-50 border-emerald-300 hover:bg-emerald-100'}`}>
             <div className="flex items-center space-x-3 overflow-hidden">
-              <div className={`flex-shrink-0 p-2.5 rounded-xl text-white shadow-lg ${isEpub ? 'bg-amber-600 shadow-amber-200' : 'bg-emerald-600 shadow-emerald-200'}`}>
+              <div className={`flex-shrink-0 p-2.5 rounded-xl text-white shadow-lg ${isEpub ? 'bg-amber-600 shadow-amber-200' : 'bg-emerald-700 shadow-emerald-200'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                 </svg>
               </div>
               <div className="overflow-hidden">
-                <p className={`text-[11px] font-black truncate uppercase tracking-tighter ${isEpub ? 'text-amber-900' : 'text-emerald-900'}`}>
-                  {isEpub ? 'e-Publikasi Pertanian' : 'Repositori Pertanian'}
-                </p>
-                <p className={`text-[9px] font-bold uppercase tracking-widest italic ${isEpub ? 'text-amber-700' : 'text-emerald-700'}`}>Official Digital Collection</p>
+                <div className="flex items-center space-x-2">
+                  <p className={`text-[11px] font-black truncate uppercase tracking-tighter ${isEpub ? 'text-amber-900' : 'text-emerald-900'}`}>
+                    {isEpub ? 'e-Publikasi Pertanian' : 'Repositori Pertanian'}
+                  </p>
+                  <span className="bg-white/60 px-1.5 py-0.5 rounded text-[7px] font-black text-slate-800 uppercase tracking-tighter border border-slate-200">Official</span>
+                </div>
+                <p className={`text-[9px] font-bold uppercase tracking-widest italic ${isEpub ? 'text-amber-700' : 'text-emerald-700'}`}>Aset Digital Kementerian Pertanian</p>
               </div>
             </div>
-            <a href={part} target="_blank" rel="noopener noreferrer" className={`ml-4 flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-black text-white transition-all border-b-2 active:translate-y-0.5 ${isEpub ? 'bg-amber-600 hover:bg-amber-700 border-amber-900' : 'bg-emerald-600 hover:bg-emerald-700 border-emerald-900'}`}>
+            <a href={part} target="_blank" rel="noopener noreferrer" className={`ml-4 flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-black text-white transition-all border-b-2 active:translate-y-0.5 ${isEpub ? 'bg-amber-600 hover:bg-amber-700 border-amber-900' : 'bg-emerald-700 hover:bg-emerald-800 border-emerald-900'}`}>
               BUKA SUMBER
             </a>
           </div>
@@ -121,6 +125,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
                   <span className="text-sm font-black uppercase tracking-widest leading-none mb-1 group-hover:text-white transition-colors">Hubungi Pustakawan (WhatsApp)</span>
                   <span className="text-[11px] font-bold opacity-70 group-hover:opacity-100 italic transition-all">Layanan Bantuan Referensi Teknis</span>
                 </div>
+              </div>
+              <div className="bg-white/20 p-3 rounded-full group-hover:bg-white/40 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </div>
             </a>
           </div>
@@ -150,7 +159,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
       <div className={`flex max-w-[90%] md:max-w-[85%] ${isAssistant ? 'flex-row' : 'flex-row-reverse'}`}>
         <div className={`flex-shrink-0 h-14 w-14 rounded-[1.5rem] flex items-center justify-center transition-all ${
           isAssistant 
-            ? (isExpert ? 'bg-emerald-900 border-yellow-400 rotate-[-3deg]' : isJournal ? 'bg-blue-800 border-blue-300 rotate-[-2deg]' : 'bg-emerald-600 border-white rotate-0') + ' text-white mr-4 border-2 shadow-2xl' 
+            ? (isExpert ? 'bg-emerald-950 border-yellow-400 rotate-[-3deg]' : isJournal ? 'bg-blue-900 border-blue-300 rotate-[-2deg]' : 'bg-emerald-600 border-white rotate-0') + ' text-white mr-4 border-2 shadow-2xl' 
             : 'bg-slate-200 text-slate-600 ml-4 rotate-[3deg]'
         }`}>
           {isAssistant ? (
@@ -182,7 +191,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
                 'bg-emerald-700 border-emerald-500'
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full mr-2 animate-pulse ${isExpert ? 'bg-yellow-400' : isJournal ? 'bg-blue-200' : 'bg-white'}`}></span>
-                {isExpert ? 'Expert Analysis' : isJournal ? 'Scholar Literature' : 'Asisten Perpustakaan'}
+                {isExpert ? 'Expert Search' : isJournal ? 'Scholar Literature' : 'Asisten BBPP'}
               </span>
             </div>
           )}
@@ -198,29 +207,86 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onSuggestionClick })
           </div>
           
           {isAssistant && message.groundingSources && (
-            <div className="mt-6 w-full animate-message">
-              <div className="flex items-center space-x-3 mb-4 px-1">
-                <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${isJournal ? 'bg-blue-500 ring-blue-100 ring-4' : 'bg-yellow-400'}`}></div>
-                <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest italic">
-                  {isJournal ? 'Literatur Ilmiah Terdeteksi' : 'Sumber Grounding Terdeteksi'}
+            <div className="mt-8 w-full animate-message">
+              <div className="flex items-center space-x-3 mb-5 px-1">
+                <div className={`w-3 h-3 rounded-full animate-pulse ${isJournal ? 'bg-blue-500 ring-blue-100 ring-8' : 'bg-emerald-500 ring-emerald-100 ring-8'}`}></div>
+                <h4 className="text-[12px] font-black text-slate-800 uppercase tracking-widest italic">
+                  Grounding Sumber Terverifikasi
                 </h4>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {message.groundingSources.map((source, idx) => {
                   const isScholar = source.uri.includes('scholar.google.com');
+                  const isOfficial = source.uri.includes('pertanian.go.id');
                   return (
                     <a 
                       key={idx} 
                       href={source.uri} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className={`flex items-center p-3 bg-white border rounded-xl transition-all group shadow-sm ${isScholar ? 'border-blue-200 hover:border-blue-500' : 'border-slate-100 hover:border-yellow-400'}`}
+                      className={`flex items-center p-4 bg-white border rounded-[1.5rem] transition-all group shadow-sm hover:shadow-xl active:scale-95 ${isOfficial ? 'border-emerald-200 bg-emerald-50/10' : isScholar ? 'border-blue-200' : 'border-slate-100'}`}
                     >
-                      <div className={`p-2 rounded-lg mr-3 ${isScholar ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-600'}`}>
-                        {isScholar ? (
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className={`p-3 rounded-xl mr-4 group-hover:scale-110 transition-transform shadow-inner ${isOfficial ? 'bg-emerald-50 text-emerald-700' : isScholar ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-400'}`}>
+                        {isOfficial ? (
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                           </svg>
+                        ) : isScholar ? (
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                            </svg>
                         ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1a1 1 0 112 0v1a1 1 0 11-2 0zM13.536 14.95a1 1 0 01-1.414 0l-.707-.707a1 1 0 111.414-1.414l.707.707a1 1 0 010 1.414zM16.121 17.12
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex items-center space-x-2">
+                          <p className="text-[11px] font-black text-slate-800 truncate leading-tight">{source.title}</p>
+                          {isOfficial && (
+                            <span className="bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase">Official</span>
+                          )}
+                        </div>
+                        <p className={`text-[9px] truncate font-bold uppercase tracking-tighter opacity-60 ${isOfficial ? 'text-emerald-700' : isScholar ? 'text-blue-600' : 'text-slate-500'}`}>
+                          {new URL(source.uri).hostname}
+                        </p>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {isAssistant && message.suggestions && message.suggestions.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {message.suggestions.map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => onSuggestionClick?.(suggestion)}
+                  className={`px-5 py-2.5 text-[10px] font-black rounded-2xl border transition-all italic active:scale-95 shadow-sm hover:shadow-md ${
+                    isJournal ? 'bg-blue-600 border-blue-500 text-white hover:bg-blue-700' :
+                    isExpert ? 'bg-white border-emerald-100 hover:border-yellow-400 text-emerald-900' : 
+                    'bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-700'
+                  }`}
+                >
+                  <span className="mr-2 opacity-60">#</span>
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center mt-4 space-x-2 opacity-40">
+            <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest italic">
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • BBPP LEMBANG RESEARCH v2.0
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ChatMessage;
