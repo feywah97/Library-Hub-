@@ -1,6 +1,9 @@
 
 export type Role = 'user' | 'assistant';
-export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice' | 'python';
+export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice' | 'python' | 'visualizer';
+
+export type AspectRatio = '1:1' | '16:9' | '4:3' | '9:16' | '3:4';
+export type ImageStyle = 'photorealistic' | 'scientific_diagram' | 'digital_art' | 'botanical_illustration' | 'vintage_plate' | 'satellite';
 
 export interface GroundingSource {
   title: string;
@@ -11,6 +14,7 @@ export interface ChatResponse {
   text: string;
   suggestions: string[];
   groundingSources?: GroundingSource[];
+  imageUrl?: string;
 }
 
 export interface Message {
@@ -21,6 +25,7 @@ export interface Message {
   mode?: SearchMode;
   suggestions?: string[];
   groundingSources?: GroundingSource[];
+  imageUrl?: string;
 }
 
 export interface AISettings {
@@ -37,6 +42,7 @@ export interface Patron {
   instansi: string;
   kategori: 'Umum' | 'Mahasiswa' | 'Peneliti' | 'Petani';
   tanggalDaftar: string;
+  role: 'user' | 'admin';
 }
 
 export interface SearchFilters {
@@ -60,4 +66,14 @@ export interface DeploymentStatus {
   isLive: boolean;
   version: string;
   uptime: string;
+}
+
+export interface VisualResult {
+  url: string;
+  prompt: string;
+  insight: string;
+  timestamp: Date;
+  semanticTags: string[];
+  style?: ImageStyle;
+  ratio?: AspectRatio;
 }

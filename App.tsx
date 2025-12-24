@@ -5,15 +5,27 @@ import PatronRegistrationModal from './components/PatronRegistrationModal';
 import AdvancedSearchModal from './components/AdvancedSearchModal';
 import StatisticsModal from './components/StatisticsModal';
 import AdminPatronsModal from './components/AdminPatronsModal';
+import SystemStatusModal from './components/SystemStatusModal';
+import SearchHistoryDropdown from './components/SearchHistoryDropdown';
 import LiveVoiceSearch from './components/LiveVoiceSearch';
 import GradioDashboard from './components/GradioDashboard';
+import VisualizerDashboard from './components/VisualizerDashboard';
+import ThemeToggle from './components/ThemeToggle';
 import { Message, Patron, SearchMode, AISettings, DeploymentStatus } from './types';
-import { chatWithGemini } from './services/geminiService';
+import { chatWithGemini, getSmartSearchSuggestions } from './services/geminiService';
 import { patronService } from './services/patronService';
+import { searchHistoryService } from './services/searchHistoryService';
 import { metadata } from './metadata';
+import { useDebounce } from './hooks/useDebounce';
 
 const App: React.FC = () => {
   const [activeMode, setActiveMode] = useState<SearchMode>('expert');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
   const [deployment] = useState<DeploymentStatus>({
     isLive: metadata.deployment.status === 'active',
     version: metadata.version,
@@ -30,20 +42,53 @@ const App: React.FC = () => {
     {
       id: 'welcome',
       role: 'assistant',
-      content: `# 🚀 Deployment Success\nSistem **BBPP Lembang Research Hub** kini berstatus **LIVE**. Semua modul pencarian (Repositori, Scholar, & Python AI) telah terintegrasi sepenuhnya. \n\nVersi Sistem: \`${metadata.version}\``,
+      content: `# 🚀 Deployment Success\nSistem **BBPP Lembang Research Hub** kini berstatus **LIVE**. \n\nSemua modul pencarian (Repositori, Scholar, & Python AI) telah terintegrasi sepenuhnya. \n\nVersi Sistem: \`${metadata.version}\``,
       timestamp: new Date(),
-      suggestions: ["Buat Script Analisis Padi", "Cari Jurnal Hidroponik", "Open Gradio Dashboard"]
+      suggestions: ["Buat Script Analisis Padi", "Cari Jurnal Hidroponik", "Open Dashboard"]
     }
   ]);
   
   const [input, setInput] = useState('');
+  const debouncedInput = useDebounce(input, 600);
+  const [smartSuggestions, setSmartSuggestions] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+  const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Patron | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSuggestions = async () => {
+      if (debouncedInput.length >= 4 && !isLoading) {
+        setIsLoadingSuggestions(true);
+        const suggestions = await getSmartSearchSuggestions(debouncedInput, activeMode);
+        if (isMounted) {
+          setSmartSuggestions(suggestions);
+          setIsLoadingSuggestions(false);
+        }
+      } else {
+        setSmartSuggestions([]);
+      }
+    };
+    fetchSuggestions();
+    return () => { isMounted = false; };
+  }, [debouncedInput, activeMode]);
 
   useEffect(() => {
     const user = patronService.getCurrentUser();
@@ -61,6 +106,8 @@ const App: React.FC = () => {
     if (!messageText.trim() || isLoading) return;
 
     setMessages(prev => prev.map(m => m.role === 'assistant' ? { ...m, suggestions: [] } : m));
+    setSmartSuggestions([]);
+    setIsHistoryOpen(false);
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -72,6 +119,9 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
+    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+
+    searchHistoryService.saveQuery(messageText);
 
     try {
       const history = messages.map(msg => ({
@@ -110,169 +160,310 @@ const App: React.FC = () => {
     }
   };
 
-  const copyShareLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Public link copied to clipboard!");
-  };
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full bg-white dark:bg-slate-900 transition-colors duration-300">
+      <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center bg-[#1B5E20] relative overflow-hidden shrink-0">
+        <div className="absolute top-0 right-0 p-2 opacity-20">
+           <div className="w-24 h-24 border-4 border-white rounded-full"></div>
+        </div>
+        <div className="text-2xl font-black text-white italic tracking-tighter drop-shadow-lg leading-none uppercase">BBPP LEMBANG</div>
+        <div className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.3em] mt-2 italic">Research Hub AI</div>
+        <div className="mt-4 px-3 py-1 bg-white/10 rounded-full border border-white/20 flex items-center space-x-2">
+           <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+           <span className="text-[9px] font-black text-white uppercase tracking-widest">System: Live</span>
+        </div>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-8 scrollbar-hide">
+        {currentUser?.role === 'admin' && (
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest border-l-4 border-indigo-500 pl-3">Administrator Control</h3>
+            <button 
+              onClick={() => { setIsAdminModalOpen(true); setIsMobileMenuOpen(false); }}
+              className="w-full group flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all border border-indigo-100 dark:border-indigo-900/50 shadow-sm"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">🔐</span>
+                <div className="text-left">
+                  <p className="text-[10px] font-black text-indigo-900 dark:text-indigo-200 uppercase">Database Anggota</p>
+                  <p className="text-[8px] font-bold text-indigo-500 dark:text-indigo-400 uppercase">Manage Patrons</p>
+                </div>
+              </div>
+              <svg className="h-4 w-4 text-indigo-300 group-hover:text-indigo-600 dark:text-indigo-700 dark:group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            </button>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">Research Utility</h3>
+          <div className="flex flex-col gap-2">
+            <button onClick={() => { setIsStatsModalOpen(true); setIsMobileMenuOpen(false); }} className="w-full group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">📊</span>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-800 dark:group-hover:text-emerald-400">Tren Peminjaman</span>
+              </div>
+              <svg className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <button onClick={() => { setIsSystemModalOpen(true); setIsMobileMenuOpen(false); }} className="w-full group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">📡</span>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-emerald-800 dark:group-hover:text-emerald-400">Status Sistem</span>
+              </div>
+              <svg className="h-4 w-4 text-slate-300 dark:text-slate-600 group-hover:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">Search Modules</h3>
+          <div className="flex flex-col gap-2">
+            {(['regular', 'expert', 'journal', 'python', 'gradio', 'visualizer', 'voice'] as SearchMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => { setActiveMode(mode); setIsMobileMenuOpen(false); }}
+                className={`flex items-center space-x-3 p-4 rounded-2xl transition-all border-2 ${
+                  activeMode === mode 
+                    ? mode === 'visualizer' ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-500 text-orange-900 dark:text-orange-200 shadow-sm' : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-500 text-emerald-900 dark:text-emerald-200 shadow-sm' 
+                    : 'bg-white dark:bg-slate-800/30 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span className="text-xl">
+                  {mode === 'regular' ? '🤖' : mode === 'expert' ? '🔍' : mode === 'journal' ? '📚' : mode === 'python' ? '🐍' : mode === 'gradio' ? '⚡' : mode === 'visualizer' ? '🎨' : '🎙️'}
+                </span>
+                <div className="text-left">
+                  <p className="text-[11px] font-black uppercase tracking-tight">{mode.charAt(0).toUpperCase() + mode.slice(1)} Mode</p>
+                  <p className="text-[8px] font-bold opacity-60 uppercase">
+                    {mode === 'regular' ? 'General AI' : mode === 'expert' ? 'Technical Research' : mode === 'journal' ? 'Academic Sources' : mode === 'python' ? 'AI Python Engineer' : mode === 'gradio' ? 'ML Inference' : mode === 'visualizer' ? 'Data Vision' : 'Live Voice'}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="p-4 lg:p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 shrink-0">
+        {currentUser ? (
+          <div className="flex items-center space-x-4 p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+             {currentUser.role === 'admin' && (
+               <div className="absolute top-0 right-0 bg-yellow-400 text-[6px] font-black px-2 py-0.5 uppercase tracking-widest rotate-45 translate-x-3 -translate-y-0 shadow-sm">ADMIN</div>
+             )}
+             <div className={`w-8 h-8 lg:w-10 lg:h-10 ${currentUser.role === 'admin' ? 'bg-indigo-700' : 'bg-emerald-700'} text-white rounded-xl flex items-center justify-center font-black text-xs lg:text-base`}>
+               {currentUser.nama[0]}
+             </div>
+             <div className="overflow-hidden">
+               <p className="text-[10px] lg:text-xs font-black text-slate-800 dark:text-slate-200 truncate">{currentUser.nama}</p>
+               <button onClick={() => patronService.logout()} className="text-[8px] lg:text-[9px] font-bold text-red-500 uppercase tracking-widest hover:underline">Keluar</button>
+             </div>
+          </div>
+        ) : (
+          <button 
+            onClick={() => { setIsRegModalOpen(true); setIsMobileMenuOpen(false); }}
+            className="w-full py-4 bg-[#1B5E20] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border-b-4 border-yellow-500 hover:brightness-110 active:translate-y-0.5 active:border-b-0 transition-all"
+          >
+            Registrasi Pemustaka
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 w-full">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden text-slate-800 dark:text-slate-200 w-full relative transition-colors duration-300">
       <PatronRegistrationModal isOpen={isRegModalOpen} onClose={() => setIsRegModalOpen(false)} onSuccess={(patron) => setCurrentUser(patron)} />
       <AdvancedSearchModal isOpen={isAdvancedSearchOpen} onClose={() => setIsAdvancedSearchOpen(false)} onSearch={(f) => handleSend(`[ADVANCED] Penulis: ${f.penulis}, Tahun: ${f.tahun}, Topik: ${f.topik}`)} />
       <StatisticsModal isOpen={isStatsModalOpen} onClose={() => setIsStatsModalOpen(false)} />
-      <AdminPatronsModal isOpen={isAdminModalOpen} onClose={() => setIsAdminModalOpen(false)} />
+      <SystemStatusModal isOpen={isSystemModalOpen} onClose={() => setIsSystemModalOpen(false)} />
+      
+      {currentUser?.role === 'admin' && (
+        <AdminPatronsModal isOpen={isAdminModalOpen} onClose={() => setIsAdminModalOpen(false)} />
+      )}
 
-      {/* Sidebar */}
-      <aside className={`flex flex-col border-r border-slate-200 bg-white shadow-xl transition-all duration-500 ${activeMode === 'gradio' || activeMode === 'voice' ? 'w-96' : 'w-80'} hidden lg:flex relative z-30`}>
-        <div className="p-6 border-b border-slate-100 flex flex-col items-center bg-[#1B5E20] relative overflow-hidden shrink-0">
-          <div className="absolute top-0 right-0 p-2 opacity-20">
-             <div className="w-24 h-24 border-4 border-white rounded-full"></div>
-          </div>
-          <div className="text-2xl font-black text-white italic tracking-tighter drop-shadow-lg leading-none uppercase">BBPP LEMBANG</div>
-          <div className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.3em] mt-2 italic">Research Hub AI</div>
-          <div className="mt-4 px-3 py-1 bg-white/10 rounded-full border border-white/20 flex items-center space-x-2">
-             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-             <span className="text-[9px] font-black text-white uppercase tracking-widest">System: Live</span>
-          </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
-          <div className="space-y-6">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">Research Utility</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <button onClick={() => setIsStatsModalOpen(true)} className="group flex items-center justify-between p-4 bg-slate-50 rounded-2xl hover:bg-emerald-50 transition-all border border-slate-100">
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">📊</span>
-                  <span className="text-xs font-bold text-slate-600 group-hover:text-emerald-800">Tren Peminjaman</span>
-                </div>
-                <svg className="h-4 w-4 text-slate-300 group-hover:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </button>
-            </div>
-          </div>
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
-          <div className="space-y-6">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-l-4 border-emerald-500 pl-3">Search Modules</h3>
-            <div className="flex flex-col gap-2">
-              {(['regular', 'expert', 'journal', 'python', 'gradio', 'voice'] as SearchMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setActiveMode(mode)}
-                  className={`flex items-center space-x-3 p-4 rounded-2xl transition-all border-2 ${
-                    activeMode === mode 
-                      ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-md' 
-                      : 'bg-white border-transparent text-slate-500 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="text-xl">
-                    {mode === 'regular' ? '🤖' : mode === 'expert' ? '🔍' : mode === 'journal' ? '📚' : mode === 'python' ? '🐍' : mode === 'gradio' ? '⚡' : '🎙️'}
-                  </span>
-                  <div className="text-left">
-                    <p className="text-[11px] font-black uppercase tracking-tight">{mode.charAt(0).toUpperCase() + mode.slice(1)} Mode</p>
-                    <p className="text-[8px] font-bold opacity-60 uppercase">
-                      {mode === 'regular' ? 'General AI' : mode === 'expert' ? 'Technical Research' : mode === 'journal' ? 'Academic Sources' : mode === 'python' ? 'AI Python Engineer' : mode === 'gradio' ? 'ML Inference' : 'Live Voice'}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-6 border-t border-slate-100 bg-slate-50 shrink-0">
-          {currentUser ? (
-            <div className="flex items-center space-x-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
-               <div className="w-10 h-10 bg-emerald-700 text-white rounded-xl flex items-center justify-center font-black">{currentUser.nama[0]}</div>
-               <div className="overflow-hidden">
-                 <p className="text-xs font-black text-slate-800 truncate">{currentUser.nama}</p>
-                 <button onClick={() => patronService.logout()} className="text-[9px] font-bold text-red-500 uppercase tracking-widest hover:underline">Keluar</button>
-               </div>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setIsRegModalOpen(true)}
-              className="w-full py-4 bg-[#1B5E20] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest border-b-4 border-yellow-500 hover:brightness-110 active:translate-y-1 active:border-b-0 transition-all"
-            >
-              Registrasi Pemustaka
-            </button>
-          )}
-        </div>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl lg:shadow-xl transition-transform duration-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-72 lg:w-80 shrink-0`}>
+        <SidebarContent />
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative bg-white">
-        {activeMode === 'voice' ? (
-          <LiveVoiceSearch isActive={true} />
-        ) : activeMode === 'gradio' ? (
-          <div className="p-8 h-full overflow-hidden">
-            <GradioDashboard settings={aiSettings} />
-          </div>
-        ) : (
-          <>
-            <header className="h-20 border-b border-slate-100 px-8 flex items-center justify-between bg-white shrink-0 relative z-20 shadow-sm">
-               <div className="flex items-center space-x-4">
-                  <div className={`w-3 h-3 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-500'}`}></div>
-                  <div>
-                    <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">{activeMode} Research Hub</h2>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] italic">Active Knowledge Node</p>
-                  </div>
-               </div>
-               <div className="flex items-center space-x-4">
-                 <button onClick={() => setIsAdvancedSearchOpen(true)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Filter</button>
-                 <div className="h-8 w-[1px] bg-slate-100 mx-2"></div>
-                 <div className="text-right hidden sm:block">
-                   <p className="text-[10px] font-black text-slate-800 leading-none">V.{metadata.version}</p>
-                   <p className="text-[8px] font-bold text-emerald-600 uppercase mt-1 tracking-tighter">Production</p>
-                 </div>
-               </div>
-            </header>
+      <main className="flex-1 flex flex-col relative bg-white dark:bg-slate-950 overflow-hidden transition-colors duration-300">
+        <header className="h-16 lg:h-20 border-b border-slate-100 dark:border-slate-900 px-4 lg:px-8 flex items-center justify-between bg-white dark:bg-slate-950 shrink-0 relative z-20 shadow-sm transition-colors duration-300">
+           <div className="flex items-center space-x-3 lg:space-x-4">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 -ml-2 lg:hidden text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-xl transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+              </button>
+              <div className={`w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-emerald-500'}`}></div>
+              <button 
+                onClick={() => setIsSystemModalOpen(true)}
+                className="text-left group"
+              >
+                <h2 className="text-[11px] lg:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest truncate max-w-[120px] md:max-w-none group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">{activeMode} Research Hub</h2>
+                <p className="text-[8px] lg:text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight lg:tracking-[0.2em] italic shrink-0">Active Knowledge Node</p>
+              </button>
+           </div>
+           
+           <div className="flex items-center space-x-2 lg:space-x-6">
+             <ThemeToggle isDarkMode={isDarkMode} toggle={() => setIsDarkMode(!isDarkMode)} />
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-4 scroll-smooth" ref={scrollRef}>
-               {messages.map(msg => (
-                 <ChatMessage key={msg.id} message={msg} onSuggestionClick={(text) => handleSend(text)} />
-               ))}
-               {isLoading && (
-                 <div className="flex items-center space-x-3 text-slate-400 p-4 animate-pulse">
-                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                   <span className="text-[10px] font-black uppercase tracking-[0.3em] ml-2">Menyiapkan Tanggapan...</span>
-                 </div>
-               )}
+             <button onClick={() => setIsAdvancedSearchOpen(true)} className="p-2 lg:px-4 lg:py-2 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+               <span className="hidden lg:inline">Filter</span>
+               <svg className="h-4 w-4 lg:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+             </button>
+             
+             <div 
+               className="flex flex-col items-end shrink-0 pl-1 lg:pl-0 cursor-pointer group"
+               onClick={() => setIsSystemModalOpen(true)}
+             >
+               <div className="flex items-center space-x-1 mb-0.5">
+                  <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <p className="text-[7px] lg:text-[9px] font-black text-slate-800 dark:text-slate-200 leading-none uppercase tracking-tighter group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">v{metadata.version}</p>
+               </div>
+               <div className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-md border border-emerald-100 dark:border-emerald-900/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 transition-colors">
+                  <p className="text-[6px] lg:text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter leading-none">Production Live</p>
+               </div>
+             </div>
+           </div>
+        </header>
+
+        <div className="flex-1 overflow-hidden flex flex-col relative">
+          {activeMode === 'voice' ? (
+            <LiveVoiceSearch isActive={true} />
+          ) : activeMode === 'gradio' ? (
+            <div className="p-4 lg:p-8 h-full overflow-hidden">
+              <GradioDashboard settings={aiSettings} />
             </div>
-
-            <div className="p-8 bg-white border-t border-slate-100 shrink-0 relative z-20">
-              <div className="max-w-4xl mx-auto flex items-end space-x-4 bg-slate-50 p-2 rounded-[2rem] border border-slate-200 shadow-inner focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-50 transition-all">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder={activeMode === 'python' ? "Minta skrip Python untuk analisis data..." : "Ketik kueri riset pertanian Anda..."}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-medium py-4 px-6 resize-none max-h-40 min-h-[56px] placeholder:text-slate-400"
-                  rows={1}
-                />
-                <button
-                  onClick={() => handleSend()}
-                  disabled={!input.trim() || isLoading}
-                  className={`p-4 rounded-2xl transition-all shadow-lg ${
-                    !input.trim() || isLoading 
-                      ? 'bg-slate-200 text-slate-400' 
-                      : 'bg-[#1B5E20] text-white hover:brightness-110 active:scale-95 shadow-emerald-100'
-                  }`}
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                </button>
+          ) : activeMode === 'visualizer' ? (
+            <VisualizerDashboard />
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6 lg:space-y-8 scroll-smooth" ref={scrollRef}>
+                 {messages.map(msg => (
+                   <ChatMessage key={msg.id} message={msg} onSuggestionClick={(text) => handleSend(text)} />
+                 ))}
+                 {isLoading && (
+                   <div className="flex items-center space-x-3 text-slate-400 dark:text-slate-500 p-4 animate-pulse">
+                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                     <span className="text-[10px] font-black uppercase tracking-[0.2em] ml-2">Menyiapkan...</span>
+                   </div>
+                 )}
               </div>
-            </div>
-          </>
-        )}
+
+              <div className="p-4 lg:p-8 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900 shrink-0 relative z-20 transition-colors duration-300">
+                <div className="max-w-4xl mx-auto flex flex-col space-y-2 relative">
+                  {(smartSuggestions.length > 0 || isLoadingSuggestions) && !isLoading && (
+                    <div className="flex flex-wrap gap-2 px-4 animate-in fade-in slide-in-from-bottom-2 mb-2">
+                      <div className="w-full flex items-center justify-between mb-1 ml-1">
+                        <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Saran Pencarian Cerdas:</p>
+                        {isLoadingSuggestions && (
+                           <div className="flex space-x-1">
+                              <div className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce"></div>
+                              <div className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                              <div className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                           </div>
+                        )}
+                      </div>
+                      {smartSuggestions.map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleSend(suggestion)}
+                          className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all shadow-sm"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="relative group">
+                    <SearchHistoryDropdown 
+                      isOpen={isHistoryOpen} 
+                      onClose={() => setIsHistoryOpen(false)} 
+                      onSelect={(query) => {
+                        setInput(query);
+                        handleSend(query);
+                      }} 
+                    />
+                    
+                    <div className="flex items-end space-x-2 lg:space-x-4 bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl lg:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-inner focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-50 dark:focus-within:ring-emerald-950/30 transition-all">
+                      <button 
+                        onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                        className={`p-3 lg:p-4 rounded-xl lg:rounded-2xl transition-all ${isHistoryOpen ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-200' : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 shadow-sm'}`}
+                        title="Riwayat Pencarian"
+                      >
+                        <svg className="h-5 w-5 lg:h-6 lg:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+
+                      <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                          }
+                        }}
+                        placeholder={activeMode === 'python' ? "Script Python..." : "Ketik riset Anda..."}
+                        className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-medium py-3 lg:py-4 px-3 lg:px-6 resize-none max-h-32 lg:max-h-40 min-h-[48px] placeholder:text-slate-400 dark:placeholder:text-slate-600 text-slate-800 dark:text-slate-100"
+                        rows={1}
+                      />
+                      
+                      <button
+                        onClick={() => handleSend()}
+                        disabled={!input.trim() || isLoading}
+                        className={`p-3 lg:p-4 rounded-xl lg:rounded-2xl transition-all shadow-lg ${
+                          !input.trim() || isLoading 
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600' 
+                            : 'bg-[#1B5E20] text-white hover:brightness-110 active:scale-95'
+                        }`}
+                      >
+                        <svg className="h-5 w-5 lg:h-6 lg:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="lg:hidden h-14 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900 flex items-center justify-around px-4 shrink-0 z-30 transition-colors duration-300">
+          <button onClick={() => setActiveMode('expert')} className={`flex flex-col items-center space-y-1 ${activeMode === 'expert' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'}`}>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <span className="text-[8px] font-black uppercase">Search</span>
+          </button>
+          <button onClick={() => setActiveMode('visualizer')} className={`flex flex-col items-center space-y-1 ${activeMode === 'visualizer' ? 'text-orange-700 dark:text-orange-400' : 'text-slate-400 dark:text-slate-600'}`}>
+            <span className="text-lg leading-none">🎨</span>
+            <span className="text-[8px] font-black uppercase">Vision</span>
+          </button>
+          <button onClick={() => setActiveMode('voice')} className={`flex flex-col items-center space-y-1 ${activeMode === 'voice' ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'}`}>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+            <span className="text-[8px] font-black uppercase">Voice</span>
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center space-y-1 text-slate-400 dark:text-slate-600">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <span className="text-[8px] font-black uppercase">Menu</span>
+          </button>
+        </div>
       </main>
+      
+      <footer className="fixed bottom-2 right-4 z-[60] hidden md:flex items-center space-x-2 pointer-events-none opacity-40 hover:opacity-100 transition-opacity">
+         <div className="px-2 py-0.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-[7px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-tighter transition-colors">
+           System Engine v{metadata.version}
+         </div>
+      </footer>
     </div>
   );
 };

@@ -6,24 +6,24 @@ const LendingTrendChart: React.FC = () => {
   const maxValue = Math.max(...LENDING_TREND_DATA.flatMap(d => [d.pertanian, d.hortikultura]));
   
   return (
-    <div className="w-full bg-white p-6 rounded-2xl border border-emerald-100 shadow-inner">
+    <div className="w-full bg-white dark:bg-slate-800 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-inner transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
-        <h4 className="text-xs font-black text-emerald-800 uppercase tracking-widest italic">Visualisasi Tren 12 Bulan Terakhir</h4>
+        <h4 className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest italic">Visualisasi Tren 12 Bulan Terakhir</h4>
         <div className="flex space-x-4">
           <div className="flex items-center space-x-1.5">
             <div className="w-3 h-3 bg-[#2D9C6B] rounded-sm"></div>
-            <span className="text-[10px] font-bold text-slate-500">Pertanian</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Pertanian</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <div className="w-3 h-3 bg-yellow-400 rounded-sm"></div>
-            <span className="text-[10px] font-bold text-slate-500">Hortikultura</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Hortikultura</span>
           </div>
         </div>
       </div>
 
-      <div className="relative h-64 flex items-end justify-between space-x-1 md:space-x-2 px-2 border-b-2 border-emerald-100">
+      <div className="relative h-64 flex items-end justify-between space-x-1 md:space-x-2 px-2 border-b-2 border-emerald-100 dark:border-emerald-900/50">
         {/* Y-Axis Labels */}
-        <div className="absolute -left-6 top-0 bottom-0 flex flex-col justify-between text-[8px] font-bold text-slate-400 pointer-events-none">
+        <div className="absolute -left-6 top-0 bottom-0 flex flex-col justify-between text-[8px] font-bold text-slate-400 dark:text-slate-500 pointer-events-none">
           <span>{maxValue}</span>
           <span>{Math.round(maxValue / 2)}</span>
           <span>0</span>
@@ -52,16 +52,16 @@ const LendingTrendChart: React.FC = () => {
                 </div>
               </div>
             </div>
-            <span className="mt-2 text-[9px] font-black text-slate-500 uppercase tracking-tighter">
+            <span className="mt-2 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-tighter">
               {data.month}
             </span>
           </div>
         ))}
       </div>
       
-      <div className="mt-6 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-        <p className="text-[10px] text-emerald-800 leading-relaxed font-medium">
-          <span className="font-black text-emerald-600">Analisis:</span> Puncak peminjaman terjadi pada bulan <span className="font-black">November</span> dengan dominasi kategori Pertanian Umum, mencerminkan tingginya antusiasme pelatihan pada akhir tahun anggaran.
+      <div className="mt-6 p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+        <p className="text-[10px] text-emerald-800 dark:text-emerald-400 leading-relaxed font-medium">
+          <span className="font-black text-emerald-600 dark:text-emerald-300">Analisis:</span> Puncak peminjaman terjadi pada bulan <span className="font-black">November</span> dengan dominasi kategori Pertanian Umum.
         </p>
       </div>
     </div>

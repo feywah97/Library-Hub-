@@ -12,8 +12,8 @@ const StatisticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm transition-opacity">
-      <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-emerald-100 animate-in fade-in zoom-in duration-300">
-        <div className="bg-[#2D9C6B] p-6 text-white border-b-4 border-yellow-400">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden border border-emerald-100 dark:border-emerald-900/30 animate-in fade-in zoom-in duration-300">
+        <div className="bg-[#2D9C6B] dark:bg-emerald-800 p-6 text-white border-b-4 border-yellow-400">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white/10 rounded-2xl border border-white/20">
@@ -43,20 +43,20 @@ const StatisticsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               { label: 'Kategori Terpopuler', value: 'Pertanian', desc: '54% Kontribusi' },
               { label: 'Pemustaka Aktif', value: '312', desc: 'Bulan ini' }
             ].map((stat, i) => (
-              <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest mb-1">{stat.label}</p>
-                <p className="text-2xl font-black text-slate-800 tracking-tighter italic leading-none">{stat.value}</p>
-                <p className="text-[9px] text-slate-400 mt-1 font-bold">{stat.desc}</p>
+              <div key={i} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center">
+                <p className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter italic leading-none">{stat.value}</p>
+                <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1 font-bold">{stat.desc}</p>
               </div>
             ))}
           </div>
         </div>
         
-        <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <p className="text-[10px] text-slate-400 font-bold italic">Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</p>
+        <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold italic">Terakhir diperbarui: {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</p>
           <button 
             onClick={() => window.print()}
-            className="px-4 py-2 text-[10px] font-black text-emerald-700 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+            className="px-4 py-2 text-[10px] font-black text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-900/50 rounded-lg hover:bg-emerald-50 dark:hover:bg-slate-700 transition-colors"
           >
             CETAK LAPORAN
           </button>
