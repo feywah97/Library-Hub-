@@ -10,7 +10,8 @@ export const metadata = {
   },
   "requestFramePermissions": [
     "microphone",
-    "camera"
+    "camera",
+    "geolocation"
   ]
 };
 

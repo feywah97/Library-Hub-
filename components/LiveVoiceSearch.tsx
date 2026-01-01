@@ -19,19 +19,30 @@ const LiveVoiceSearch: React.FC<Props> = ({ isActive }) => {
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
   const encode = (bytes: Uint8Array) => {
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
+    try {
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    } catch (e) {
+      console.error("Encode failure", e);
+      return "";
+    }
   };
 
   const decode = (base64: string) => {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-    return bytes;
+    try {
+      const binaryString = atob(base64.trim());
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      return bytes;
+    } catch (e) {
+      console.error("Decode failure", e);
+      return new Uint8Array(0);
+    }
   };
 
   async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number): Promise<AudioBuffer> {
+    if (data.length === 0) return ctx.createBuffer(1, 1, sampleRate);
     const dataInt16 = new Int16Array(data.buffer);
     const buffer = ctx.createBuffer(1, dataInt16.length, sampleRate);
     const channelData = buffer.getChannelData(0);
@@ -45,22 +56,15 @@ const LiveVoiceSearch: React.FC<Props> = ({ isActive }) => {
     setErrorMessage(null);
 
     try {
-      // Step 1: Request Microphone Access
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (err: any) {
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          throw new Error("Akses mikrofon ditolak. Mohon izinkan mikrofon di pengaturan browser Anda.");
-        } else if (err.name === 'NotFoundError') {
-          throw new Error("Mikrofon tidak ditemukan. Pastikan perangkat audio terhubung.");
-        } else {
-          throw new Error("Gagal mengakses mikrofon: " + err.message);
-        }
+        throw new Error("Akses mikrofon ditolak atau tidak ditemukan.");
       }
 
-      // Step 2: Initialize AI and Context
-      const ai = new GoogleGenAI({ apiKey: (process.env.API_KEY as string) });
+      const apiKey = process.env.API_KEY || "";
+      const ai = new GoogleGenAI({ apiKey });
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
 
@@ -68,140 +72,102 @@ const LiveVoiceSearch: React.FC<Props> = ({ isActive }) => {
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
-          },
-          systemInstruction: 'Anda adalah asisten suara perpustakaan BBPP Lembang. Bantu pengguna dengan ramah dan profesional.',
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
+          systemInstruction: 'Anda adalah asisten suara BBPP Lembang.',
           inputAudioTranscription: {},
           outputAudioTranscription: {}
         },
         callbacks: {
           onopen: () => {
-            setIsConnected(true);
-            setIsConnecting(false);
-            
-            const source = audioContextRef.current!.createMediaStreamSource(stream);
-            const scriptProcessor = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
-            
-            scriptProcessor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const int16 = new Int16Array(inputData.length);
-              for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
-              
-              sessionPromise.then(session => {
-                session.sendRealtimeInput({
-                  media: {
-                    data: encode(new Uint8Array(int16.buffer)),
-                    mimeType: 'audio/pcm;rate=16000'
-                  }
-                });
-              }).catch(err => {
-                console.error("Stream transfer error", err);
-              });
-            };
-
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(audioContextRef.current!.destination);
+            try {
+              setIsConnected(true);
+              setIsConnecting(false);
+              const source = audioContextRef.current!.createMediaStreamSource(stream);
+              const scriptProcessor = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
+              scriptProcessor.onaudioprocess = (e) => {
+                try {
+                  const inputData = e.inputBuffer.getChannelData(0);
+                  const int16 = new Int16Array(inputData.length);
+                  for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
+                  sessionPromise.then(session => {
+                    session.sendRealtimeInput({ media: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' } });
+                  }).catch(err => console.error("Realtime input failed", err));
+                } catch (err) { console.error("Audio process error", err); }
+              };
+              source.connect(scriptProcessor);
+              scriptProcessor.connect(audioContextRef.current!.destination);
+            } catch (err) { console.error("OnOpen setup failure", err); }
           },
           onmessage: async (message: LiveServerMessage) => {
-            if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
-              const base64Data = message.serverContent.modelTurn.parts[0].inlineData.data;
-              const ctx = outAudioContextRef.current!;
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-              
-              const audioBuffer = await decodeAudioData(decode(base64Data), ctx, 24000);
-              const source = ctx.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(ctx.destination);
-              source.onended = () => {
-                sourcesRef.current.delete(source);
-              };
-              source.start(nextStartTimeRef.current);
-              nextStartTimeRef.current += audioBuffer.duration;
-              sourcesRef.current.add(source);
-            }
-
-            if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => s.stop());
-              sourcesRef.current.clear();
-              nextStartTimeRef.current = 0;
-            }
-
-            if (message.serverContent?.inputTranscription) {
-              setTranscription(prev => ({ ...prev, user: message.serverContent?.inputTranscription?.text || '' }));
-            }
-            if (message.serverContent?.outputTranscription) {
-              setTranscription(prev => ({ ...prev, ai: prev.ai + (message.serverContent?.outputTranscription?.text || '') }));
-            }
+            try {
+              if (message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data) {
+                const base64Data = message.serverContent.modelTurn.parts[0].inlineData.data;
+                const ctx = outAudioContextRef.current!;
+                nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                const audioBuffer = await decodeAudioData(decode(base64Data), ctx, 24000);
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+                source.onended = () => { sourcesRef.current.delete(source); };
+                source.start(nextStartTimeRef.current);
+                nextStartTimeRef.current += audioBuffer.duration;
+                sourcesRef.current.add(source);
+              }
+              if (message.serverContent?.interrupted) {
+                sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
+                sourcesRef.current.clear();
+                nextStartTimeRef.current = 0;
+              }
+              if (message.serverContent?.inputTranscription) {
+                setTranscription(prev => ({ ...prev, user: message.serverContent?.inputTranscription?.text || '' }));
+              }
+              if (message.serverContent?.outputTranscription) {
+                setTranscription(prev => ({ ...prev, ai: prev.ai + (message.serverContent?.outputTranscription?.text || '') }));
+              }
+            } catch (err) { console.error("Message handling error", err); }
           },
           onclose: (e) => {
             setIsConnected(false);
             setIsConnecting(false);
-            if (e.code !== 1000) {
-              setErrorMessage("Koneksi terputus secara tidak terduga.");
-            }
+            if (e.code !== 1000) setErrorMessage("Koneksi terputus.");
           },
           onerror: (e: any) => {
             console.error("Live API Error:", e);
             setIsConnecting(false);
             setIsConnected(false);
-            
-            if (e.message?.includes('API_KEY')) {
-              setErrorMessage("Kunci API tidak valid atau tidak ditemukan.");
-            } else if (e.message?.includes('quota')) {
-              setErrorMessage("Kuota API telah habis. Mohon tunggu beberapa saat.");
-            } else {
-              setErrorMessage("Terjadi kesalahan teknis pada server AI.");
-            }
+            setErrorMessage(e.message || "Kesalahan teknis pada server AI.");
           }
         }
       });
-
       sessionRef.current = await sessionPromise;
     } catch (err: any) {
-      console.error("Failed to connect to Live API", err);
+      console.error("Failed to connect", err);
       setErrorMessage(err.message || "Gagal memulai sesi suara.");
       setIsConnecting(false);
     }
   };
 
   const stopSession = () => {
-    if (sessionRef.current) {
-      sessionRef.current.close();
-      sessionRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
+    if (sessionRef.current) { sessionRef.current.close(); sessionRef.current = null; }
+    if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
     setIsConnected(false);
     setTranscription({ user: '', ai: '' });
   };
 
   useEffect(() => {
-    if (!isActive && isConnected) {
-      stopSession();
-    }
+    if (!isActive && isConnected) stopSession();
   }, [isActive, isConnected]);
 
   if (!isActive) return null;
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-4 lg:p-8 animate-message overflow-y-auto">
-      <div className="max-w-2xl w-full bg-white rounded-3xl lg:rounded-[3rem] shadow-2xl border border-emerald-100 p-6 lg:p-12 text-center overflow-hidden relative">
-        {/* Animated Background Rings */}
-        {(isConnected || isConnecting) && (
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 lg:w-96 lg:h-96 border-4 border-emerald-50 rounded-full animate-ping opacity-20"></div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 lg:w-[30rem] lg:h-[30rem] border-2 border-emerald-50 rounded-full animate-ping [animation-delay:0.5s] opacity-10"></div>
-          </div>
-        )}
-
+      <div className="max-w-2xl w-full bg-white dark:bg-slate-900 rounded-3xl lg:rounded-[3rem] shadow-2xl border border-emerald-100 dark:border-emerald-900 p-6 lg:p-12 text-center overflow-hidden relative">
         <div className="relative z-10">
           <div className="flex flex-col items-center mb-6 lg:mb-10">
             <div className={`w-20 h-20 lg:w-32 lg:h-32 rounded-full flex items-center justify-center transition-all duration-500 shadow-xl ${
-              errorMessage ? 'bg-red-100 border-2 border-red-500' :
-              isConnected ? 'bg-emerald-600 scale-105' : isConnecting ? 'bg-yellow-400 animate-pulse' : 'bg-slate-100'
+              errorMessage ? 'bg-red-100 dark:bg-red-900/20 border-2 border-red-500' :
+              isConnected ? 'bg-emerald-600 scale-105' : isConnecting ? 'bg-yellow-400 animate-pulse' : 'bg-slate-100 dark:bg-slate-800'
             }`}>
               {errorMessage ? (
                  <svg className="h-8 w-8 lg:h-12 lg:w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,58 +185,37 @@ const LiveVoiceSearch: React.FC<Props> = ({ isActive }) => {
                 </svg>
               )}
             </div>
-            
-            <h2 className="mt-6 lg:mt-8 text-xl lg:text-2xl font-black text-slate-800 tracking-tighter italic">
+            <h2 className="mt-6 lg:mt-8 text-xl lg:text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter italic">
               {errorMessage ? 'Masalah Teknis' : isConnected ? 'Suara Aktif' : isConnecting ? 'Menghubungkan...' : 'Eksplorasi Suara'}
             </h2>
             {errorMessage && (
-              <p className="mt-2 text-[10px] lg:text-xs font-bold text-red-500 uppercase tracking-widest bg-red-50 px-4 py-1.5 rounded-full border border-red-100 animate-shimmer">
-                {errorMessage}
-              </p>
+              <p className="mt-2 text-[10px] lg:text-xs font-bold text-red-500 uppercase tracking-widest bg-red-50 dark:bg-red-950 px-4 py-1.5 rounded-full border border-red-100 dark:border-red-900">{errorMessage}</p>
             )}
           </div>
-
           <div className="space-y-4 mb-6 lg:mb-10 min-h-[100px] flex flex-col justify-center">
             {transcription.user && (
-              <div className="p-4 lg:p-6 bg-slate-50 border border-slate-100 rounded-2xl lg:rounded-3xl text-left animate-in slide-in-from-left-4">
-                <p className="text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 lg:mb-2">Mendengar Anda:</p>
-                <p className="text-xs lg:text-sm font-semibold text-slate-700 italic">"{transcription.user}"</p>
+              <div className="p-4 lg:p-6 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl lg:rounded-3xl text-left animate-in slide-in-from-left-4">
+                <p className="text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 lg:mb-2">User:</p>
+                <p className="text-xs lg:text-sm font-semibold text-slate-700 dark:text-slate-300 italic">"{transcription.user}"</p>
               </div>
             )}
-            
             {transcription.ai && (
-              <div className="p-4 lg:p-6 bg-emerald-50 border border-emerald-100 rounded-2xl lg:rounded-3xl text-left animate-message">
-                <p className="text-[7px] lg:text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1.5 lg:mb-2">Asisten Menjawab:</p>
-                <p className="text-xs lg:text-sm font-black text-emerald-900 leading-relaxed">{transcription.ai}</p>
+              <div className="p-4 lg:p-6 bg-emerald-50 dark:bg-emerald-950 border border-emerald-100 dark:border-emerald-900 rounded-2xl lg:rounded-3xl text-left animate-message">
+                <p className="text-[7px] lg:text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1.5 lg:mb-2">AI:</p>
+                <p className="text-xs lg:text-sm font-black text-emerald-900 dark:text-emerald-100 leading-relaxed">{transcription.ai}</p>
               </div>
-            )}
-
-            {!transcription.user && !transcription.ai && !isConnecting && !errorMessage && (
-              <p className="text-[10px] lg:text-xs font-medium text-slate-400 italic">
-                {isConnected ? 'Sapa asisten untuk memulai percakapan...' : 'Klik tombol di bawah untuk memulai sesi suara'}
-              </p>
             )}
           </div>
-
           <button
             onClick={isConnected ? stopSession : startSession}
             disabled={isConnecting}
             className={`w-full py-4 lg:py-5 rounded-xl lg:rounded-2xl font-black text-[10px] lg:text-sm uppercase tracking-widest transition-all shadow-xl border-b-4 ${
-              isConnected 
-                ? 'bg-red-500 text-white border-red-800' 
-                : 'bg-emerald-700 text-white border-emerald-900'
+              isConnected ? 'bg-red-500 text-white border-red-800' : 'bg-emerald-700 text-white border-emerald-900'
             } ${isConnecting ? 'opacity-50' : 'active:translate-y-1 active:border-b-0 hover:brightness-110'}`}
           >
-            {isConnected ? 'Matikan Mikrofon' : isConnecting ? 'Memulai...' : errorMessage ? 'Coba Lagi' : 'Mulai Percakapan'}
+            {isConnected ? 'Matikan Mikrofon' : isConnecting ? 'Memulai...' : 'Mulai Percakapan'}
           </button>
         </div>
-      </div>
-      
-      <div className="mt-6 lg:mt-8 flex items-center space-x-2 opacity-40">
-        <div className={`w-2 h-2 rounded-full animate-pulse ${errorMessage ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-        <p className="text-[7px] lg:text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          {errorMessage ? 'Node Offline' : 'Live Research Node'}
-        </p>
       </div>
     </div>
   );

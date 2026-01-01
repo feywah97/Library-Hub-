@@ -1,9 +1,10 @@
 
 export type Role = 'user' | 'assistant';
-export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice' | 'python' | 'visualizer';
+export type SearchMode = 'regular' | 'expert' | 'journal' | 'gradio' | 'voice' | 'python' | 'visualizer' | 'metrics' | 'weather' | 'sni';
 
 export type AspectRatio = '1:1' | '16:9' | '4:3' | '9:16' | '3:4';
 export type ImageStyle = 'photorealistic' | 'scientific_diagram' | 'digital_art' | 'botanical_illustration' | 'vintage_plate' | 'satellite';
+export type AIModel = 'imagen_4' | 'gemini_vision';
 
 export interface GroundingSource {
   title: string;
@@ -76,4 +77,47 @@ export interface VisualResult {
   semanticTags: string[];
   style?: ImageStyle;
   ratio?: AspectRatio;
+  model?: AIModel;
+  isUpscaled?: boolean;
+  isAnalysis?: boolean;
+  rating?: 'up' | 'down' | null;
+}
+
+export type NotificationType = 'system' | 'announcement' | 'update';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: Date;
+  isRead: boolean;
+}
+
+export interface AgriMetrics {
+  weather: {
+    temp: number;
+    humidity: number;
+    condition: string;
+    windSpeed: number;
+    windDirection: string;
+    pressure: number;
+    uvIndex: number;
+    visibility: number;
+    sunrise: string;
+    sunset: string;
+    cloudCover: number;
+    precipProb: number;
+  };
+  soil: {
+    moisture: number;
+    ph: number;
+    nitrogen: number;
+    temp: number;
+  };
+  market: {
+    padi: number;
+    cabai: number;
+    tomat: number;
+  };
 }
