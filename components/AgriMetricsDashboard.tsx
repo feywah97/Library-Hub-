@@ -4,9 +4,28 @@ import { AgriMetrics } from '../types';
 import { getAgriInsight } from '../services/geminiService';
 
 const AgriMetricsDashboard: React.FC = () => {
+  // Fix: Added missing properties to conform with AgriMetrics interface in types.ts
   const [metrics, setMetrics] = useState<AgriMetrics>({
-    weather: { temp: 24, humidity: 82, condition: 'Berawan', windSpeed: 8, uvIndex: 3 },
-    soil: { moisture: 45, ph: 6.5, nitrogen: 120 },
+    weather: { 
+      temp: 24, 
+      humidity: 82, 
+      condition: 'Berawan', 
+      windSpeed: 8, 
+      windDirection: 'Timur',
+      pressure: 1012,
+      uvIndex: 3,
+      visibility: 10,
+      sunrise: '05:45',
+      sunset: '17:55',
+      cloudCover: 40,
+      precipProb: 10
+    },
+    soil: { 
+      moisture: 45, 
+      ph: 6.5, 
+      nitrogen: 120,
+      temp: 22.5
+    },
     market: { padi: 7200, cabai: 35000, tomat: 12000 }
   });
   

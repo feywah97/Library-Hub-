@@ -120,11 +120,14 @@ export const getSmartSearchSuggestions = async (query: string, mode: SearchMode)
   }
 };
 
-export const getAgriculturalPromptSuggestions = async (query: string): Promise<string[]> => {
-  const cacheKey = `agri_${query.trim().toLowerCase()}`;
+export const getAgriculturalPromptSuggestions = async (query: string, isSemantic: boolean = false): Promise<string[]> => {
+  const cacheKey = `agri_${isSemantic ? 'sem_' : ''}${query.trim().toLowerCase()}`;
   if (SUGGESTION_CACHE.has(cacheKey)) return SUGGESTION_CACHE.get(cacheKey)!;
 
-  const fallbacks = [
+  const fallbacks = isSemantic ? [
+    "Mikroskopis Elektron", "Kromatografi Cair", "Analisis Spektroskopi", "Genomik Tanaman",
+    "Fisiologi Stres", "Mikrobioma Tanah", "Nanoteknologi Pupuk", "Isolasi Patogen"
+  ] : [
     "Struktur Tanah Mikroskopis", "Sistem Hidroponik NFT", "Irigasi Tetes Otomatis",
     "Hama Wereng Cokelat", "Varietas Unggul Hortikultura", "Smart Greenhouse IoT",
     "Analisis Unsur Hara NPK", "Mekanisasi Pertanian Modern"
@@ -137,8 +140,9 @@ export const getAgriculturalPromptSuggestions = async (query: string): Promise<s
     const results = await callWithRetry(async () => {
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `User sedang membangun prompt untuk visualisasi riset pertanian dengan kueri awal: "${query}". 
+        contents: `User sedang membangun prompt untuk visualisasi riset pertanian ${isSemantic ? '(fokus pada detail teknis/ilmiah)' : ''} dengan kueri awal: "${query}". 
         Berikan 8 kata kunci teknis atau frasa singkat (max 3 kata) yang SANGAT SPESIFIK dan RELEVAN untuk memperdalam aspek visual, teknis, atau ilmiah dari topik tersebut. 
+        ${isSemantic ? 'Prioritaskan terminologi laboratorium, biologi molekuler, atau teknik tingkat lanjut.' : 'Prioritaskan aspek praktis lapangan dan visualisasi modern.'}
         Gunakan Bahasa Indonesia formal. RETURN ONLY A JSON ARRAY OF STRINGS.`,
         config: {
           responseMimeType: "application/json",
@@ -182,7 +186,7 @@ export const chatWithGemini = async (
   if (mode === 'expert') { thinkingBudget = 24000; }
   else if (mode === 'journal') { instruction = JOURNAL_INSTRUCTION; thinkingBudget = 20000; }
   else if (mode === 'python') { instruction = PYTHON_INSTRUCTION; thinkingBudget = 32000; }
-  else if (mode === 'sni') { instruction = SNI_INSTRUCTION; thinkingBudget = 32000; } // Increased for "Deep Research"
+  else if (mode === 'sni') { instruction = SNI_INSTRUCTION; thinkingBudget = 32000; }
   else if (mode === 'gradio' && customSettings) { instruction = EXPERT_INSTRUCTION; thinkingBudget = customSettings.thinkingBudget; }
 
   try {

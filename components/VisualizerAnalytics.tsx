@@ -1,10 +1,12 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend, AreaChart, Area 
 } from 'recharts';
 import { VisualResult } from '../types';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 interface Props {
   images: VisualResult[];
@@ -13,6 +15,8 @@ interface Props {
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const VisualizerAnalytics: React.FC<Props> = ({ images }) => {
+  const [isExporting, setIsExporting] = useState(false);
+
   const styleStats = useMemo(() => {
     const counts: Record<string, number> = {};
     images.forEach(img => {
@@ -55,13 +59,124 @@ const VisualizerAnalytics: React.FC<Props> = ({ images }) => {
     }));
   }, [images]);
 
+  const exportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF() as any;
+      const timestamp = new Date().toLocaleString('id-ID');
+      
+      // Branding Header
+      doc.setFillColor(27, 94, 32); // BBPP Green
+      doc.rect(0, 0, 210, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('AGRI-VISION VISUAL REPORT', 15, 20);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Balai Besar Pelatihan Pertanian Lembang - Research Hub', 15, 30);
+      doc.text(`Generated: ${timestamp}`, 140, 30);
+
+      // Section 1: Executive Summary
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Executive Summary', 15, 55);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Visual Artifacts Analyzed: ${images.length}`, 15, 65);
+      doc.text(`Primary Research Style: ${styleStats[0]?.name || 'N/A'}`, 15, 72);
+      doc.text(`Dominant Inference Engine: ${modelStats.sort((a,b) => b.value - a.value)[0]?.name || 'N/A'}`, 15, 79);
+
+      // Section 2: Style Distribution Table
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Visual Style Distribution', 15, 95);
+      
+      doc.autoTable({
+        startY: 100,
+        head: [['Visual Style Category', 'Artifact Count', 'Percentage']],
+        body: styleStats.map(s => [
+          s.name, 
+          s.value, 
+          `${((s.value / images.filter(img => !img.isAnalysis).length) * 100).toFixed(1)}%`
+        ]),
+        headStyles: { fillStyle: 'f', fillColor: [27, 94, 32] },
+        theme: 'grid'
+      });
+
+      // Section 3: Model Usage
+      const lastY = (doc as any).lastAutoTable.finalY || 150;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('AI Infrastructure Usage', 15, lastY + 15);
+      
+      doc.autoTable({
+        startY: lastY + 20,
+        head: [['Engine / Model', 'Usage Count']],
+        body: modelStats.map(m => [m.name, m.value]),
+        headStyles: { fillColor: [59, 130, 246] },
+        theme: 'striped'
+      });
+
+      // Section 4: Recent Timeline
+      const timelineY = (doc as any).lastAutoTable.finalY || 200;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('7-Day Activity Timeline', 15, timelineY + 15);
+      
+      doc.autoTable({
+        startY: timelineY + 20,
+        head: [['Date (Interval)', 'Generations']],
+        body: timelineData.map(t => [t.date, t.count]),
+        headStyles: { fillColor: [245, 158, 11] },
+        theme: 'grid'
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`Agri-Vision System Intelligence - Confidential Research Data - Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
+      }
+
+      doc.save(`AgriVision_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Export failed', error);
+      alert('Gagal menghasilkan laporan PDF. Silakan coba lagi.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (images.length === 0) return null;
 
   return (
     <div className="space-y-6 animate-message">
-      <div className="flex items-center space-x-3 mb-2">
-        <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
-        <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-[0.2em]">Inference Diagnostics & Trends</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+        <div className="flex items-center space-x-3">
+          <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
+          <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-[0.2em]">Inference Diagnostics & Trends</h3>
+        </div>
+        <button 
+          onClick={exportPDF}
+          disabled={isExporting}
+          className="flex items-center space-x-2 px-4 py-2 bg-slate-900 dark:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg disabled:opacity-50"
+        >
+          {isExporting ? (
+             <>
+               <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+               <span>Generating...</span>
+             </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <span>Download Report (PDF)</span>
+            </>
+          )}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

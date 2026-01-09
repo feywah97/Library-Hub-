@@ -46,7 +46,7 @@ const App: React.FC = () => {
     {
       id: 'welcome',
       role: 'assistant',
-      content: `# 🚀 Deployment Success\nSistem **BBPP Lembang Research Hub** kini berstatus **LIVE**. \n\nSemua modul pencarian (Repositori, Scholar, SNI Standards, & Python AI) telah terintegrasi sepenuhnya dengan modul riset mendalam. \n\nVersi Sistem: \`${metadata.version}\``,
+      content: `# 🚀 Deployment Success\nSistem **BBPP Lembang Research Hub** kini berstatus **LIVE**. \n\nSemua modul pencarian (Repositori, Scholar, Standar Nasional Indonesia, & Python AI) telah terintegrasi sepenuhnya dengan modul riset mendalam. \n\nVersi Sistem: \`${metadata.version}\``,
       timestamp: new Date(),
       suggestions: ["Riset SNI Alat Mesin Pertanian", "Cari Jurnal Hidroponik", "SNI Keamanan Pangan Buah"]
     }
@@ -249,14 +249,14 @@ const App: React.FC = () => {
                 }`}
               >
                 <span className="text-xl transition-transform group-hover/mode:scale-125 group-hover/mode:rotate-6">
-                  {mode === 'regular' ? '🤖' : mode === 'expert' ? '🔍' : mode === 'journal' ? '📚' : mode === 'python' ? '🐍' : mode === 'gradio' ? '⚡' : mode === 'visualizer' ? '🎨' : mode === 'metrics' ? '📈' : mode === 'weather' ? '🌦️' : mode === 'voice' ? '🎙️' : '🛡️'}
+                  {mode === 'regular' ? '🤖' : mode === 'expert' ? '🔍' : mode === 'journal' ? '📚' : mode === 'python' ? '🐍' : mode === 'gradio' ? '⚡' : mode === 'visualizer' ? '🎨' : mode === 'metrics' ? '📈' : mode === 'weather' ? '🌦️' : mode === 'voice' ? '🎙️' : '📜'}
                 </span>
                 <div className="text-left transition-all group-hover/mode:translate-x-1">
                   <p className="text-[11px] font-black uppercase tracking-tight">
-                    {mode === 'sni' ? 'SNI Standards' : mode.charAt(0).toUpperCase() + mode.slice(1)} Mode
+                    {mode === 'sni' ? 'Standar Nasional (SNI)' : mode.charAt(0).toUpperCase() + mode.slice(1)} Mode
                   </p>
                   <p className="text-[8px] font-bold opacity-60 uppercase">
-                    {mode === 'regular' ? 'General AI' : mode === 'expert' ? 'Technical Research' : mode === 'journal' ? 'Academic Sources' : mode === 'python' ? 'AI Python Engineer' : mode === 'gradio' ? 'ML Inference' : mode === 'visualizer' ? 'Data Vision' : mode === 'metrics' ? 'Agri-Metrics' : mode === 'weather' ? 'Weather Hub' : mode === 'voice' ? 'Live Voice' : 'SNI Deep Research'}
+                    {mode === 'regular' ? 'General AI' : mode === 'expert' ? 'Technical Research' : mode === 'journal' ? 'Academic Sources' : mode === 'python' ? 'AI Python Engineer' : mode === 'gradio' ? 'ML Inference' : mode === 'visualizer' ? 'Data Vision' : mode === 'metrics' ? 'Agri-Metrics' : mode === 'weather' ? 'Weather Hub' : mode === 'voice' ? 'Live Voice' : 'Deep BSN Research'}
                   </p>
                 </div>
               </button>
@@ -327,7 +327,7 @@ const App: React.FC = () => {
                 onClick={() => setIsSystemModalOpen(true)}
                 className="text-left group active:scale-95 transition-transform"
               >
-                <h2 className="text-[11px] lg:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest truncate max-w-[120px] md:max-w-none group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">{activeMode === 'sni' ? 'SNI Standards' : activeMode} Research Hub</h2>
+                <h2 className="text-[11px] lg:text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest truncate max-w-[120px] md:max-w-none group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">{activeMode === 'sni' ? 'Standar Nasional Indonesia' : activeMode} Research Hub</h2>
                 <p className="text-[8px] lg:text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight lg:tracking-[0.2em] italic shrink-0 transition-opacity group-hover:opacity-100">Active Knowledge Node</p>
               </button>
            </div>
