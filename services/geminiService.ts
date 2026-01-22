@@ -225,13 +225,18 @@ export const getMapsGroundedWeather = async (lat: number, lng: number): Promise<
   const ai = new GoogleGenAI({ apiKey: getSafeApiKey() });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: `Sebagai Pakar Agroklimatologi BBPP Lembang, berikan briefing teknis presisi untuk koordinat: ${lat}, ${lng}.
-    Gunakan Google Maps & Search Grounding untuk data real-time:
-    1. GEOGRAFI TEKNIS: Identifikasi Nama Desa/Kecamatan, estimasi ketinggian (mdpl), dan pengaruh topografi lokal (misal: bayangan hujan, lembah, lereng) terhadap suhu udara.
-    2. DINAMIKA ATMOSFER: Analisis tekanan udara (hPa), kelembapan spesifik, dan potensi anomali angin lokal yang mungkin terjadi hari ini.
-    3. DIAGNOSIS AGRIKULTUR: Bagaimana kombinasi suhu dan kelembapan saat ini berdampak pada risiko penyakit jamur (fungi) atau serangan hama spesifik komoditas unggulan di wilayah ini?
-    4. PROTOKOL BUDIDAYA: Berikan 3 instruksi operasional yang SANGAT SPESIFIK (misal: rekomendasi pengairan presisi, waktu aplikasi pestisida hayati, atau perlindungan naungan) berdasarkan cuaca hari ini.
-    Gunakan Markdown untuk format yang rapi dan Bahasa Indonesia profesional yang aplikatif.`,
+    contents: `Sebagai Pakar Agrometeorologi Senior BBPP Lembang, berikan briefing teknis presisi tinggi untuk koordinat: ${lat}, ${lng}.
+
+    Gunakan Google Maps & Search Grounding secara intensif untuk mendapatkan DATA REAL-TIME per jam ini:
+    1. ANALISIS TERRAIN: Identifikasi nama desa/kecamatan yang tepat, elevasi (mdpl), dan kemiringan lereng yang berpengaruh pada mikroklimat lokal.
+    2. TELEMETRI ATMOSFER: Berikan data cuaca saat ini (Suhu, Kelembapan, Kecepatan Angin, Tekanan Udara, UV Index) dan prakiraan 12 jam ke depan.
+    3. DIAGNOSIS AGRIKULTUR: 
+       - Hitung potensi Evapotranspirasi (ET) kasar berdasarkan suhu/angin saat ini.
+       - Identifikasi risiko serangan jamur (fungi) jika kelembapan di atas 80% atau risiko stres panas jika suhu di atas 30°C.
+       - Tentukan kecocokan kondisi saat ini untuk aplikasi pupuk cair atau pestisida hayati.
+    4. PROTOKOL LAPANGAN (Wajib Ada): Berikan 3 instruksi operasional eksplisit untuk petani/peneliti di lokasi tersebut hari ini.
+
+    Format output dalam Markdown yang sangat rapi, profesional, dan menggunakan Bahasa Indonesia teknis yang aplikatif.`,
     config: {
       tools: [{ googleMaps: {} }, { googleSearch: {} }],
       toolConfig: { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } }

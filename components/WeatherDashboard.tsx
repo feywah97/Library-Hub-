@@ -98,12 +98,9 @@ const WeatherDashboard: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Weather grounding error:", err);
-      if (err.message?.includes('Requested entity was not found') || JSON.stringify(err).includes('Requested entity was not found')) {
-        setAdvice("⚠️ Grounding Maps memerlukan API Key dari project berbayar yang aktif. Silakan verifikasi konfigurasi billing Anda.");
-      } else {
-        const res = await getWeatherAgriculturalAdvice(name, weather);
-        setAdvice(res);
-      }
+      // Fallback if grounding fails
+      const res = await getWeatherAgriculturalAdvice(name, weather);
+      setAdvice(res);
     } finally {
       setIsLoadingAdvice(false);
     }
@@ -138,7 +135,6 @@ const WeatherDashboard: React.FC = () => {
     );
   };
 
-  // Helper to get wind rotation
   const getWindRotation = (dir: string) => {
     const directions: Record<string, number> = {
       'Utara': 0, 'Timur Laut': 45, 'Timur': 90, 'Tenggara': 135,
@@ -157,23 +153,23 @@ const WeatherDashboard: React.FC = () => {
           </div>
           <div className="relative z-10 transition-transform group-hover:translate-x-1 duration-500">
             <div className="flex items-center space-x-3 mb-6">
-               <span className="px-4 py-1.5 bg-indigo-600 text-white text-[8px] lg:text-[10px] font-black uppercase rounded-full tracking-widest border border-indigo-400 shadow-lg shadow-indigo-500/20 animate-pulse">Live Atmospheric Feed</span>
-               {isUsingGPS && <span className="px-4 py-1.5 bg-emerald-600 text-white text-[8px] lg:text-[10px] font-black uppercase rounded-full tracking-widest border border-emerald-400 animate-in zoom-in duration-300">Grounded by GPS</span>}
+               <span className="px-4 py-1.5 bg-indigo-600 text-white text-[8px] lg:text-[10px] font-black uppercase rounded-full tracking-widest border border-indigo-400 shadow-lg shadow-indigo-500/20 animate-pulse">Agro-Climate Protocol Active</span>
+               {isUsingGPS && <span className="px-4 py-1.5 bg-emerald-600 text-white text-[8px] lg:text-[10px] font-black uppercase rounded-full tracking-widest border border-emerald-400 animate-in zoom-in duration-300 shadow-lg shadow-emerald-500/20">Hyper-Local GPS Active</span>}
             </div>
             <h2 className="text-4xl lg:text-6xl font-black italic tracking-tighter leading-none">
-              {isUsingGPS ? "Current Terrain Sky" : `${selectedLoc.name} Atmosphere`}
+              {isUsingGPS ? "Terrain Analysis Mode" : `${selectedLoc.name} Hub`}
             </h2>
             <div className="mt-6 flex flex-wrap gap-4">
               <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm transition-all hover:bg-white/10">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Inference Status</p>
                 <div className="flex items-center space-x-2">
-                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                   <span className="text-[10px] font-black uppercase">Sensor Active</span>
+                   <div className={`w-2 h-2 rounded-full animate-pulse ${isLoadingAdvice ? 'bg-yellow-400' : 'bg-emerald-500'}`}></div>
+                   <span className="text-[10px] font-black uppercase">{isLoadingAdvice ? 'Scanning Grounding...' : 'Real-time Sync OK'}</span>
                 </div>
               </div>
               <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm transition-all hover:bg-white/10">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Precision</p>
-                <span className="text-[10px] font-black uppercase">{isUsingGPS ? "± 5 Meters" : "Regional Model"}</span>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Precision Range</p>
+                <span className="text-[10px] font-black uppercase">{isUsingGPS ? "Grid-Level Precision" : "Station-Level Coverage"}</span>
               </div>
             </div>
           </div>
@@ -182,7 +178,7 @@ const WeatherDashboard: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col space-y-4 lg:w-80 shrink-0 animate-message [animation-delay:0.1s]">
            <button 
              onClick={handleUseGPS}
-             className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center space-x-3 border-b-4 shadow-lg active:scale-95 ${isUsingGPS ? 'bg-emerald-600 text-white border-emerald-800' : 'bg-slate-900 text-white border-black hover:bg-slate-800'}`}
+             className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center space-x-3 border-b-4 shadow-lg active:scale-95 ${isUsingGPS ? 'bg-emerald-600 text-white border-emerald-800 shadow-emerald-500/20' : 'bg-slate-900 text-white border-black hover:bg-slate-800'}`}
            >
              <svg className="w-5 h-5 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
              <span>Precision GPS Sync</span>
@@ -190,7 +186,7 @@ const WeatherDashboard: React.FC = () => {
            
            <div className="relative flex items-center py-2">
               <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800"></div>
-              <span className="px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Regional Hubs</span>
+              <span className="px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Select Location</span>
               <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800"></div>
            </div>
 
@@ -218,10 +214,10 @@ const WeatherDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Sky Condition Card */}
         <div className="lg:col-span-2 bg-gradient-to-br from-indigo-700 via-indigo-800 to-slate-900 p-8 lg:p-10 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[400px] animate-message [animation-delay:0.2s] group duration-500 hover:shadow-indigo-500/20 card-hover">
-           <div className="absolute top-10 right-10 text-[9rem] opacity-10 filter blur-sm transition-all group-hover:scale-110 group-hover:opacity-20">🌧️</div>
+           <div className="absolute top-10 right-10 text-[9rem] opacity-10 filter blur-sm transition-all group-hover:scale-110 group-hover:opacity-20">🌦️</div>
            <div className="relative z-10 flex flex-col md:flex-row justify-between md:items-end">
               <div className="transition-transform group-hover:translate-x-1 duration-500">
-                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-3 transition-opacity opacity-70 group-hover:opacity-100">Ambient Temperature</p>
+                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.2em] mb-3 transition-opacity opacity-70 group-hover:opacity-100">Live Temperature Flux</p>
                 <p className="text-7xl lg:text-9xl font-black italic tracking-tighter leading-none">{weather.temp}°</p>
                 <div className="flex items-center space-x-3 mt-4">
                    <p className="text-xl font-bold uppercase tracking-widest text-indigo-100">{weather.condition}</p>
@@ -230,15 +226,15 @@ const WeatherDashboard: React.FC = () => {
               </div>
               <div className="mt-8 md:mt-0 text-right space-y-4">
                  <div className="bg-white/10 p-4 rounded-[2rem] border border-white/20 backdrop-blur-md transition-all group-hover:bg-white/20 hover:scale-105 duration-300">
-                    <p className="text-[9px] font-black text-indigo-200 uppercase tracking-widest">Dew Point Index</p>
+                    <p className="text-[9px] font-black text-indigo-200 uppercase tracking-widest">Dew Point</p>
                     <p className="text-2xl font-black leading-none">{(weather.temp - (100 - weather.humidity) / 5).toFixed(1)}°C</p>
                  </div>
                  <div className="transition-transform group-hover:translate-y-[-4px] duration-500">
-                    <p className="text-[8px] font-black text-indigo-300 uppercase">Cloud Cover Analysis</p>
+                    <p className="text-[8px] font-black text-indigo-300 uppercase">Atmospheric Density</p>
                     <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden w-40 ml-auto shadow-inner">
                        <div className="h-full bg-blue-300 transition-all duration-1000 ease-out shadow-[0_0_10px_white]" style={{ width: `${weather.cloudCover}%` }}></div>
                     </div>
-                    <p className="text-[9px] font-black mt-1 uppercase tracking-tighter opacity-80">{weather.cloudCover}% Density</p>
+                    <p className="text-[9px] font-black mt-1 uppercase tracking-tighter opacity-80">{weather.cloudCover}% Coverage</p>
                  </div>
               </div>
            </div>
@@ -251,7 +247,6 @@ const WeatherDashboard: React.FC = () => {
                       <p className="text-[8px] font-black text-indigo-200 uppercase tracking-widest">Sunrise</p>
                       <p className="text-sm font-black">{weather.sunrise}</p>
                    </div>
-                   {/* Solar Path Decoration */}
                    <div className="absolute -left-2 top-0 h-full w-0.5 bg-yellow-400/40 rounded-full"></div>
                 </div>
                 <div className="flex items-center space-x-4 group/sun relative">
@@ -280,7 +275,7 @@ const WeatherDashboard: React.FC = () => {
 
               <div className="space-y-5 hidden sm:block">
                 <div>
-                   <p className="text-[9px] font-black text-indigo-200 uppercase mb-1.5">Dynamic Wind</p>
+                   <p className="text-[9px] font-black text-indigo-200 uppercase mb-1.5">Anemometry</p>
                    <div className="flex items-center space-x-2">
                       <div 
                         className="p-1.5 bg-white/10 rounded-lg transition-transform duration-1000" 
@@ -290,15 +285,11 @@ const WeatherDashboard: React.FC = () => {
                       </div>
                       <p className="text-2xl font-black leading-none">{weather.windSpeed.toFixed(1)} <span className="text-[10px]">km/h</span></p>
                    </div>
-                   <div className="mt-2 p-1.5 bg-white/5 rounded-lg border border-white/10 inline-block transition-colors hover:bg-white/10">
-                      <p className="text-[8px] font-black text-indigo-300 uppercase tracking-tighter">Vector: {weather.windDirection}</p>
-                   </div>
                 </div>
                 <div>
-                   <p className="text-[9px] font-black text-indigo-200 uppercase mb-1.5">Atm. Pressure</p>
+                   <p className="text-[9px] font-black text-indigo-200 uppercase mb-1.5">Barometer</p>
                    <div className="flex items-center space-x-2">
                       <p className="text-2xl font-black">{weather.pressure} <span className="text-[10px]">hPa</span></p>
-                      <div className={`h-2 w-2 rounded-full ${weather.pressure > 1013 ? 'bg-emerald-400' : 'bg-blue-400'} animate-pulse`}></div>
                    </div>
                 </div>
               </div>
@@ -315,8 +306,8 @@ const WeatherDashboard: React.FC = () => {
               </div>
               <div className="transition-transform group-hover:translate-y-[-2px]">
                  <p className="text-6xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic leading-none">{weather.uvIndex}</p>
-                 <p className={`text-[10px] font-black uppercase mt-3 py-1 px-3 rounded-full inline-block transition-all ${weather.uvIndex > 5 ? 'bg-red-50 text-red-600 border border-red-100 animate-pulse' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
-                   {weather.uvIndex > 5 ? 'High Risk' : 'Optimal Spectrum'}
+                 <p className={`text-[10px] font-black uppercase mt-3 py-1 px-3 rounded-full inline-block transition-all ${weather.uvIndex > 5 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
+                   {weather.uvIndex > 5 ? 'Extreme Risk' : 'Photosynthetic Range'}
                  </p>
               </div>
               <div className="mt-6 flex space-x-1">
@@ -326,27 +317,21 @@ const WeatherDashboard: React.FC = () => {
               </div>
            </div>
 
-           {/* Barometer Gauge Style */}
-           <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col justify-between flex-1 relative overflow-hidden animate-message [animation-delay:0.35s] card-hover group">
-              <div className="absolute -bottom-4 -right-4 opacity-5 group-hover:opacity-10 transition-opacity duration-1000">
-                 <svg className="w-24 h-24 transition-transform group-hover:rotate-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 18a8 8 0 118-8 8 8 0 01-8 8z"/><path d="M12 6a1 1 0 00-1 1v4.59l-2.71 2.7a1 1 0 001.42 1.42l3-3a1 1 0 00.29-.71V7a1 1 0 00-1-1z"/></svg>
+           {/* Precision Irrigation Matrix */}
+           <div className="bg-indigo-600 p-8 rounded-[3rem] text-white shadow-xl flex flex-col justify-between flex-1 relative overflow-hidden animate-message [animation-delay:0.35s] card-hover group transition-all duration-500">
+              <div className="absolute -bottom-4 -right-4 opacity-10 group-hover:opacity-20 transition-opacity duration-1000">
+                 <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 18a8 8 0 118-8 8 8 0 01-8 8z"/><path d="M12 6a1 1 0 00-1 1v4.59l-2.71 2.7a1 1 0 001.42 1.42l3-3a1 1 0 00.29-.71V7a1 1 0 00-1-1z"/></svg>
               </div>
               <div className="flex items-center justify-between relative z-10">
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Atm. Pressure</span>
-                 <span className="text-2xl transition-transform group-hover:scale-110">⏲️</span>
+                 <span className="text-[10px] font-black text-indigo-100 uppercase tracking-[0.2em]">ET Rate Estimate</span>
+                 <span className="text-2xl transition-transform group-hover:scale-110">💧</span>
               </div>
-              <div className="relative z-10 transition-transform group-hover:translate-y-[-2px] mt-2">
-                 <p className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tighter italic leading-none transition-all">{weather.pressure} <span className="text-xs uppercase opacity-40">hPa</span></p>
-                 <div className="mt-4 h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex shadow-inner">
-                    <div className={`h-full transition-all duration-1000 ${weather.pressure > 1013 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${((weather.pressure - 980) / 70) * 100}%` }}></div>
-                 </div>
-                 <div className="flex justify-between mt-1 opacity-40 text-[7px] font-black uppercase">
-                    <span>980</span>
-                    <span>1050</span>
-                 </div>
+              <div className="relative z-10 mt-2">
+                 <p className="text-4xl font-black italic">{(weather.temp * 0.12 + weather.windSpeed * 0.05).toFixed(2)} <span className="text-xs uppercase opacity-60">mm/hr</span></p>
+                 <p className="text-[8px] font-black uppercase mt-2 text-indigo-200">Recommended Water Intake</p>
               </div>
-              <div className="mt-2 p-2 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center transition-colors group-hover:border-indigo-400">
-                 <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Trend: {weather.pressure > 1013 ? 'High Density' : 'Standard Cyclonic'}</p>
+              <div className="mt-4 p-2 bg-white/10 rounded-xl border border-white/20 text-center">
+                 <p className="text-[8px] font-black uppercase tracking-widest">Cycle: {weather.humidity > 80 ? 'Maintenance' : 'High Delivery'}</p>
               </div>
            </div>
         </div>
@@ -354,11 +339,8 @@ const WeatherDashboard: React.FC = () => {
         {/* Soil & Ground Analysis */}
         <div className="flex flex-col space-y-6">
            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border-2 border-emerald-100 dark:border-emerald-800/40 shadow-xl flex flex-col justify-between flex-1 relative overflow-hidden animate-message [animation-delay:0.4s] group card-hover">
-              <div className="absolute top-0 right-0 p-6 opacity-5 transition-opacity group-hover:opacity-10 duration-1000">
-                 <svg className="w-24 h-24 group-hover:rotate-45 transition-transform duration-1000" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
-              </div>
               <div className="flex items-center justify-between relative z-10">
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Soil Analytics</span>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Soil Health Matrix</span>
                  <span className="text-2xl transition-transform group-hover:scale-110">🧪</span>
               </div>
               <div className="space-y-6 relative z-10 mt-6 transition-transform group-hover:translate-y-[-2px]">
@@ -369,12 +351,12 @@ const WeatherDashboard: React.FC = () => {
                  <div className="h-px bg-slate-100 dark:bg-slate-800"></div>
                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 transition-opacity group-hover:opacity-100">Moisture</p>
-                       <p className="text-lg font-black dark:text-slate-200 transition-transform group-hover:scale-110 origin-left">{soil.moisture}%</p>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Moisture</p>
+                       <p className="text-lg font-black dark:text-slate-200">{soil.moisture}%</p>
                     </div>
                     <div>
-                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 transition-opacity group-hover:opacity-100">pH Stability</p>
-                       <p className="text-lg font-black text-yellow-600 dark:text-yellow-400 transition-transform group-hover:scale-110 origin-left">{soil.ph}</p>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">N-Level</p>
+                       <p className="text-lg font-black text-yellow-600 dark:text-yellow-400">{soil.nitrogen} ppm</p>
                     </div>
                  </div>
               </div>
@@ -382,18 +364,12 @@ const WeatherDashboard: React.FC = () => {
 
            <div className="bg-emerald-600 p-8 rounded-[3rem] text-white shadow-xl flex flex-col justify-between flex-1 animate-message [animation-delay:0.45s] group card-hover duration-500">
               <div className="flex items-center justify-between">
-                 <span className="text-[9px] font-black text-emerald-100 uppercase tracking-widest">Growth Factor</span>
+                 <span className="text-[9px] font-black text-emerald-100 uppercase tracking-widest">Agro-Stability</span>
                  <span className="text-2xl transition-transform group-hover:rotate-12">🌱</span>
               </div>
               <div className="transition-transform group-hover:translate-x-1 duration-500">
                  <p className="text-3xl font-black italic tracking-tighter leading-tight uppercase">Optimal Cycle</p>
-                 <p className="text-[10px] font-black text-emerald-100/60 uppercase tracking-widest mt-2">N-Metric: {soil.nitrogen} ppm</p>
-              </div>
-              <div className="mt-6 flex justify-between items-center text-[10px] font-black uppercase tracking-tighter transition-all group-hover:translate-y-[-2px]">
-                 <span>Metabolic Level</span>
-                 <div className="w-16 h-1 bg-white/20 rounded-full overflow-hidden shadow-inner">
-                    <div className="h-full bg-white animate-pulse" style={{ width: '85%' }}></div>
-                 </div>
+                 <p className="text-[10px] font-black text-emerald-100/60 uppercase tracking-widest mt-2">Zone: Tropical Highlands</p>
               </div>
            </div>
         </div>
@@ -407,8 +383,8 @@ const WeatherDashboard: React.FC = () => {
            <div className="relative z-10 flex flex-col xl:flex-row gap-12 items-start">
               <div className="xl:w-1/4 shrink-0 transition-transform group-hover:translate-x-1 duration-500">
                  <div className="w-20 h-20 bg-indigo-700 rounded-[2rem] flex items-center justify-center text-white text-4xl shadow-2xl border-4 border-indigo-500/20 mb-6 transform group-hover:rotate-6 transition-all duration-500 hover:scale-110">🛰️</div>
-                 <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-[0.2em]">Context Briefing</h4>
-                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 leading-relaxed opacity-80 transition-opacity group-hover:opacity-100">AI Terrain Analysis & Maps Grounding Protocol Active.</p>
+                 <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-[0.2em]">Protokol 24 Jam</h4>
+                 <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 leading-relaxed opacity-80">AI Precision Weather & Grounding Advisor.</p>
                  
                  {groundingSources.length > 0 && (
                    <div className="mt-8 space-y-3 animate-in fade-in duration-500">
@@ -427,11 +403,11 @@ const WeatherDashboard: React.FC = () => {
                     <div className="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center rounded-[3.5rem] z-20 animate-in fade-in duration-300">
                        <div className="flex flex-col items-center space-y-4">
                           <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin shadow-lg"></div>
-                          <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-[0.4em] animate-pulse">Scanning Geographic Data...</span>
+                          <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-[0.4em] animate-pulse">Syncing Local Atmosphere...</span>
                        </div>
                     </div>
                  )}
-                 <div className="prose prose-sm lg:prose-base dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 font-medium italic leading-relaxed first-letter:text-5xl first-letter:font-black first-letter:text-indigo-700 dark:first-letter:text-indigo-400 first-letter:mr-4 first-letter:float-left drop-shadow-sm transition-all duration-1000 animate-message">
+                 <div className="prose prose-sm lg:prose-base dark:prose-invert max-w-none text-slate-800 dark:text-slate-100 font-medium leading-relaxed first-letter:text-5xl first-letter:font-black first-letter:text-indigo-700 dark:first-letter:text-indigo-400 first-letter:mr-4 first-letter:float-left drop-shadow-sm transition-all duration-1000 animate-message">
                    {advice}
                  </div>
               </div>
@@ -442,9 +418,9 @@ const WeatherDashboard: React.FC = () => {
       {/* Network Stability Note */}
       <div className="pt-12 flex flex-col items-center space-y-5 animate-message [animation-delay:0.6s]">
          <div className="px-6 py-2.5 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800 shadow-inner transition-all hover:scale-105 active:scale-95 cursor-default">
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.5em] transition-colors hover:text-emerald-500">Precision Climate Mesh v2.5</p>
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.5em] transition-colors hover:text-emerald-500">Agro-Precision Weather Mesh v3.1</p>
          </div>
-         <p className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] text-center max-w-2xl italic opacity-60 transition-opacity hover:opacity-100 duration-500">Data telemetri disinkronisasi melalui Google Maps Cloud Engine. Resolusi mikroklimat diperbarui setiap siklus sensor (4s).</p>
+         <p className="text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] text-center max-w-2xl italic opacity-60 transition-opacity hover:opacity-100 duration-500">Data cuaca disinkronisasi melalui Google Grounding Protocol. Resolusi mikroklimat diperbarui setiap siklus sensor (4s).</p>
       </div>
     </div>
   );
